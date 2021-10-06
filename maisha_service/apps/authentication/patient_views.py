@@ -408,7 +408,7 @@ class EmailTemplates:
             <html lang="en">
                 <body style="text-align:center;">
                     <br/>
-                    <img alt="Image" border="0" src="https://res.cloudinary.com/dolwj4vkq/image/upload/v1629813572/RFH/EMAIL/Screenshot_2021-08-24_at_16.55.45.png" title="Image" width="300"/>
+                    <img alt="Image" border="0" src="https://res.cloudinary.com/dolwj4vkq/image/upload/v1631524225/RFH/EMAIL/patient.png" title="Image" width="200"/>
                     <br/>
                     <br/>
                     <div style="color:#008080;font-family:'Montserrat', 'Trebuchet MS', 'Lucida Grande', 'Lucida Sans Unicode', 'Lucida Sans', Tahoma, sans-serif;line-height:1.2; padding:0;">
@@ -440,11 +440,11 @@ class EmailTemplates:
             <html lang="en">
                 <body style="text-align:center;">
                     <br/>
-                    <img alt="Image" border="0" src="https://res.cloudinary.com/dolwj4vkq/image/upload/v1621418365/HelloAlfie/ic_launcher.png" title="Image" width="300"/>
+                    <img alt="Image" border="0" src="https://res.cloudinary.com/dolwj4vkq/image/upload/v1631524225/RFH/EMAIL/patient.png" title="Image" width="200"/>
                     <br/>
                     <br/>
-                    <div style="color:#ff7463;font-family:'Montserrat', 'Trebuchet MS', 'Lucida Grande', 'Lucida Sans Unicode', 'Lucida Sans', Tahoma, sans-serif;line-height:1.2; padding:0;">
-                        <div style="font-size: 12px; line-height: 1.2; font-family: 'Lucida Sans Unicode', 'Lucida Sans', Tahoma, sans-serif; color: #ff7463; mso-line-height-alt: 14px;">
+                    <div style="color:#008080;font-family:'Montserrat', 'Trebuchet MS', 'Lucida Grande', 'Lucida Sans Unicode', 'Lucida Sans', Tahoma, sans-serif;line-height:1.2; padding:0;">
+                        <div style="font-size: 12px; line-height: 1.2; font-family: 'Lucida Sans Unicode', 'Lucida Sans', Tahoma, sans-serif; color: #008080; mso-line-height-alt: 14px;">
                             <p style="font-size: 18px; line-height: 1.2; text-align: center; mso-line-height-alt: 22px; margin: 0;"><span style="font-size: 18px;"><strong><span style="font-size: 18px;"> Did you requested to have your password changed?</span></strong></span></p>
                         </div>
                     </div>
