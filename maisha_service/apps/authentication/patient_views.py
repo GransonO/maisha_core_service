@@ -44,15 +44,7 @@ class Register(views.APIView):
                         activation_code=random_code,
                         user_email=(passed_data["email"]).lower()
                     )
-
-                    print(" -------------------> I GOT HERE. {}".format(passed_data["isMaisha"] is "1"))
-
-                    if passed_data["isMaisha"] is "1":
-                        value = Register.send_maisha_message((passed_data["email"]).lower(), passed_data["firstname"], random_code)
-
-                    if passed_data["isMaisha"] is "2":
-                        value = Register.send_welcome_message((passed_data["email"]).lower(), passed_data["firstname"], random_code)
-
+                    value = Register.send_maisha_message((passed_data["email"]).lower(), passed_data["firstname"], random_code)
                     if value == 200:
                         activation_data.save()
                     else:
@@ -112,33 +104,6 @@ class Register(views.APIView):
         except Exception as e:
             print("------------------Exception: {}".format(e))
             return False
-
-    @staticmethod
-    def send_welcome_message(email, name, code):
-        load_dotenv()
-        api_key = os.environ['MJ_API_KEY_PUBLIC']
-        api_secret = os.environ['MJ_API_KEY_PRIVATE']
-        mailjet = Client(auth=(api_key, api_secret), version='v3.1')
-        data = {
-            'Messages': [
-                {
-                    "From": {
-                        "Email": "helloalfie@epitomesoftware.live",
-                        "Name": "Hello Alfie"
-                    },
-                    "To": [
-                        {
-                            "Email": email,
-                            "Name": name
-                        }
-                    ],
-                    "Subject": 'Welcome {} to Hello Alfie'.format(name),
-                    "HTMLPart":  EmailTemplates.register_email(name, code)
-                }
-            ]
-        }
-        result = mailjet.send.create(data=data)
-        return result.status_code
 
     @staticmethod
     def send_maisha_message(email, name, code):
@@ -324,11 +289,7 @@ class ResetPass(views.APIView):
                         reset_code=random_code,
                     )
                     add_reset.save()
-                    if passed_data["isMaisha"] is "1":
-                        ResetPass.send_maisha_support_email((passed_data["email"]).lower(), random_code)
-
-                    if passed_data["isMaisha"] is "2":
-                        ResetPass.send_support_email((passed_data["email"]).lower(), random_code)
+                    ResetPass.send_maisha_support_email((passed_data["email"]).lower(), random_code)
 
                     return Response({
                             "status": "reset success",
@@ -337,13 +298,9 @@ class ResetPass(views.APIView):
                             }, status.HTTP_200_OK)
                 else:
                     # Update Reset
-                    if passed_data["isMaisha"]:
-                        value = ResetPass.send_maisha_support_email((passed_data["email"]).lower(), random_code)
-                    else:
-                        value = ResetPass.send_support_email((passed_data["email"]).lower(), random_code)
+                    value = ResetPass.send_maisha_support_email((passed_data["email"]).lower(), random_code)
 
                     if value == 200:
-                        print("------------------------------Updated ")
                         Reset.objects.filter(
                             user_email=(passed_data["email"]).lower()
                         ).update(
@@ -413,35 +370,6 @@ class ResetPass(views.APIView):
             return response
 
     @staticmethod
-    def send_support_email(email, code):
-        subject = 'Password reset'
-        message = EmailTemplates.reset_email(code)
-        load_dotenv()
-        api_key = os.environ['MJ_API_KEY_PUBLIC']
-        api_secret = os.environ['MJ_API_KEY_PRIVATE']
-        mailjet = Client(auth=(api_key, api_secret), version='v3.1')
-        data = {
-            'Messages': [
-                {
-                    "From": {
-                        "Email": "helloalfie@epitomesoftware.live",
-                        "Name": "Hello Alfie"
-                    },
-                    "To": [
-                        {
-                            "Email": email,
-                            "Name": ""
-                        }
-                    ],
-                    "Subject": subject,
-                    "HTMLPart": message
-                }
-            ]
-        }
-        result = mailjet.send.create(data=data)
-        return result.status_code
-
-    @staticmethod
     def send_maisha_support_email(email, code):
         subject = 'Password reset'
         message = EmailTemplates.maisha_reset_email(code)
@@ -474,38 +402,6 @@ class ResetPass(views.APIView):
 class EmailTemplates:
 
     @staticmethod
-    def register_email(name, code):
-        return """
-        <!DOCTYPE html>
-            <html lang="en">
-                <body style="text-align:center;">
-                    <br/>
-                    <img alt="Image" border="0" src="https://res.cloudinary.com/dolwj4vkq/image/upload/v1621418365/HelloAlfie/ic_launcher.png" title="Image" width="300"/>
-                    <br/>
-                    <br/>
-                    <div style="color:#ff7463;font-family:'Montserrat', 'Trebuchet MS', 'Lucida Grande', 'Lucida Sans Unicode', 'Lucida Sans', Tahoma, sans-serif;line-height:1.2; padding:0;">
-                        <div style="font-size: 12px; line-height: 1.2; font-family: 'Lucida Sans Unicode', 'Lucida Sans', Tahoma, sans-serif; color: #ff7463; mso-line-height-alt: 14px;">
-                            <p style="font-size: 18px; line-height: 1.2; text-align: center; mso-line-height-alt: 22px; margin: 0;"><span style="font-size: 18px;"><strong><span style="font-size: 18px;"> Hello {}</span></strong></span></p>
-                        </div>
-                    </div>
-                    <div style="color:#555555;font-family: 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Geneva, Verdana, sans-serif;line-height:1.2; padding:10px;">
-                        <div style="font-family: 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Geneva, Verdana, sans-serif; font-size: 12px; line-height: 1.2; color: #555555; mso-line-height-alt: 14px;">
-                            <p style="font-size: 17px; line-height: 1.2; mso-line-height-alt: 17px; margin: 0; font-family: Verdana, sans-serif;"> Your path to mental wellness starts here.</p>
-                            <br/>
-                            <p style="font-size: 14px; line-height: 1.2; mso-line-height-alt: 17px; margin: 0; font-family: Verdana, sans-serif;"> We are glad to have you on board. Thank you for joining us on this journey in making the world a better place <br/> through sharing, building and nurturing a healthy space for resolution of mental issues</p>
-                            <br/>
-                            <p style="font-size: 14px; line-height: 1.2; mso-line-height-alt: 17px; margin: 0; font-family: Verdana, sans-serif;"> Use activation code: <strong>{}</strong> to activate your account.</p>
-                            <br/>
-                            <p style="font-size: 14px; line-height: 1.2; mso-line-height-alt: 17px; margin: 0; font-family: Verdana, sans-serif;"> Welcome {}</p>
-                            <br/>
-                            <br/>
-                        </div>
-                    </div>
-                </body>
-            </html>
-        """.format(name, code, name)
-
-    @staticmethod
     def maisha_register_email(name, code):
         return """
          <!DOCTYPE html>
@@ -536,32 +432,6 @@ class EmailTemplates:
                 </body>
             </html>
         """.format(name, code, name)
-
-    @staticmethod
-    def reset_email(code):
-        return """
-            <!DOCTYPE html>
-            <html lang="en">
-                <body style="text-align:center;">
-                    <br/>
-                    <img alt="Image" border="0" src="https://res.cloudinary.com/dolwj4vkq/image/upload/v1621418365/HelloAlfie/ic_launcher.png" title="Image" width="300"/>
-                    <br/>
-                    <br/>
-                    <div style="color:#ff7463;font-family:'Montserrat', 'Trebuchet MS', 'Lucida Grande', 'Lucida Sans Unicode', 'Lucida Sans', Tahoma, sans-serif;line-height:1.2; padding:0;">
-                        <div style="font-size: 12px; line-height: 1.2; font-family: 'Lucida Sans Unicode', 'Lucida Sans', Tahoma, sans-serif; color: #ff7463; mso-line-height-alt: 14px;">
-                            <p style="font-size: 18px; line-height: 1.2; text-align: center; mso-line-height-alt: 22px; margin: 0;"><span style="font-size: 18px;"><strong><span style="font-size: 18px;"> Did you requested to have your password changed?</span></strong></span></p>
-                        </div>
-                    </div>
-                    <div style="color:#555555;font-family: 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Geneva, Verdana, sans-serif;line-height:1.2; padding:10px;">
-                        <div style="font-family: 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Geneva, Verdana, sans-serif; font-size: 12px; line-height: 1.2; color: #555555; mso-line-height-alt: 14px;">
-                            <p style="font-size: 14px; line-height: 1.2; mso-line-height-alt: 17px; margin: 0; font-family: Verdana, sans-serif;"> We received a request to reset your password. <br/>If you made the request, use the code <strong>{}</strong> to complete the process</p>
-                            <br/>
-                            <br/>
-                        </div>
-                    </div>
-                </body>
-            </html>
-        """.format(code)
 
     @staticmethod
     def maisha_reset_email(code):
