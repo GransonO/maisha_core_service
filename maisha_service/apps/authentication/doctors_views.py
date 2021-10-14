@@ -172,7 +172,7 @@ class Login(views.APIView):
         try:
 
             User = get_user_model()
-            username = (passed_data["email"]).lower()
+            username = (passed_data["email"]).lower().trim()
             password = passed_data["password"]
             if (username is None) or (password is None):
                 raise exceptions.AuthenticationFailed(
@@ -279,7 +279,7 @@ class ResetPass(views.APIView):
         passed_data = request.data
         try:
             # Check if it exists
-            result = DoctorsProfiles.objects.filter(email=(passed_data["email"]).lower())
+            result = DoctorsProfiles.objects.filter(email=(passed_data["email"]).lower().trim())
             print("--------------------------------{}".format(result.count()))
             if result.count() < 1:
                 return Response({
@@ -291,12 +291,12 @@ class ResetPass(views.APIView):
 
                 random_code = random.randint(1000, 9999)
                 # check if reset before
-                result = Reset.objects.filter(user_email=(passed_data["email"]).lower())
+                result = Reset.objects.filter(user_email=(passed_data["email"]).lower().trim())
                 print("--------------------------------{}".format(result.count()))
                 if result.count() < 1:
                     # Reset object does not exist, add reset details
                     add_reset = Reset(
-                        user_email=(passed_data["email"]).lower(),
+                        user_email=(passed_data["email"]).lower().trim(),
                         reset_code=random_code,
                     )
                     add_reset.save()
@@ -311,7 +311,7 @@ class ResetPass(views.APIView):
                     if value == 200:
                         print("------------------------------Updated ")
                         Reset.objects.filter(
-                            user_email=(passed_data["email"]).lower()
+                            user_email=(passed_data["email"]).lower().trim()
                         ).update(
                             reset_code=random_code,
                             )
@@ -344,7 +344,7 @@ class ResetPass(views.APIView):
         passed_data = request.data
 
         user = get_user_model()
-        username = (passed_data["email"]).lower()
+        username = (passed_data["email"]).lower().trim()
         password = passed_data["password"]
         reset_code = passed_data["code"]
         response = Response()
@@ -421,7 +421,7 @@ class DoctorVerify(views.APIView):
             print("------------------------passed_data---------------: {}".format(passed_data))
             # check for activation
             activate = DoctorsActivation.objects.filter(
-                user_email=(passed_data["email"]).lower(),
+                user_email=(passed_data["email"]).lower().trim(),
                 activation_code=int(passed_data["activation_code"])
             )
             print("------------------------Activate---------------: {}".format(activate))
@@ -434,11 +434,11 @@ class DoctorVerify(views.APIView):
 
             else:
                 user = get_user_model()
-                passed_username = (passed_data["email"]).lower()
-                user = user.objects.create_user(username=passed_username, password=passed_data["password"])
+                passed_username = (passed_data["email"].trim()).lower()
+                user = user.objects.create_user(username=passed_username, password=passed_data["password"].trim())
                 user.first_name = passed_data["firstname"]
                 user.last_name = passed_data["lastname"]
-                user.email = (passed_data["email"]).lower()
+                user.email = (passed_data["email"]).lower().trim()
 
                 user.save()
                 return Response({
