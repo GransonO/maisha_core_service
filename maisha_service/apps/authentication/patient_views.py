@@ -42,7 +42,7 @@ class Register(views.APIView):
                     random_code = random.randint(1000, 9999)
                     activation_data = PatientActivation(
                         activation_code=random_code,
-                        user_email=(passed_data["email"]).lower().trim()
+                        user_email=(passed_data["email"]).strip().lower()
                     )
                     value = Register.send_maisha_message((passed_data["email"]).lower(), passed_data["firstname"], random_code)
                     if value == 200:
@@ -98,7 +98,7 @@ class Register(views.APIView):
         """
         user = get_user_model()
         try:
-            user_exists = user.objects.filter(username=(passed_data["email"]).lower().trim()).exists()
+            user_exists = user.objects.filter(username=(passed_data["email"]).lower().strip()).exists()
             return user_exists
 
         except Exception as e:
@@ -172,7 +172,7 @@ class Login(views.APIView):
         try:
 
             User = get_user_model()
-            username = (passed_data["email"]).lower().trim()
+            username = (passed_data["email"]).lower().strip()
             password = passed_data["password"]
             if (username is None) or (password is None):
                 raise exceptions.AuthenticationFailed(
@@ -181,7 +181,7 @@ class Login(views.APIView):
             passed_user = User.objects.filter(username=username)
             if passed_user.exists():
                 user = User.objects.filter(username=username).first()
-                profile = PatientProfile.objects.filter(email=(passed_data["email"]).lower().trim())
+                profile = PatientProfile.objects.filter(email=(passed_data["email"]).lower().strip())
                 if user is None:
                     raise exceptions.AuthenticationFailed('user not found')
                 le_user = authenticate(username=username, password=password)
@@ -268,7 +268,7 @@ class ResetPass(views.APIView):
         passed_data = request.data
         try:
             # Check if it exists
-            result = PatientProfile.objects.filter(email=(passed_data["email"]).lower().trim())
+            result = PatientProfile.objects.filter(email=(passed_data["email"]).lower().strip())
             print("--------------------------------{}".format(result.count()))
             if result.count() < 1:
                 return Response({
@@ -280,12 +280,12 @@ class ResetPass(views.APIView):
 
                 random_code = random.randint(1000, 9999)
                 # check if reset before
-                result = Reset.objects.filter(user_email=(passed_data["email"]).lower().trim())
+                result = Reset.objects.filter(user_email=(passed_data["email"]).lower().strip())
                 print("--------------------------------{}".format(result.count()))
                 if result.count() < 1:
                     # Reset object does not exist, add reset details
                     add_reset = Reset(
-                        user_email=(passed_data["email"]).lower().trim(),
+                        user_email=(passed_data["email"]).lower().strip(),
                         reset_code=random_code,
                     )
                     add_reset.save()
@@ -302,7 +302,7 @@ class ResetPass(views.APIView):
 
                     if value == 200:
                         Reset.objects.filter(
-                            user_email=(passed_data["email"]).lower().trim()
+                            user_email=(passed_data["email"]).lower().strip()
                         ).update(
                             reset_code=random_code,
                             )
@@ -335,7 +335,7 @@ class ResetPass(views.APIView):
         passed_data = request.data
 
         user = get_user_model()
-        username = (passed_data["email"]).lower().trim()
+        username = (passed_data["email"]).lower().strip()
         password = passed_data["password"]
         reset_code = passed_data["code"]
         response = Response()
@@ -471,7 +471,7 @@ class PatientVerify(views.APIView):
             print("------------------------passed_data---------------: {}".format(passed_data))
             # check for activation
             activate = PatientActivation.objects.filter(
-                user_email=(passed_data["email"]).lower().trim(),
+                user_email=(passed_data["email"]).lower().strip(),
                 activation_code=int(passed_data["activation_code"])
             )
             print("------------------------Activate---------------: {}".format(activate))
@@ -484,11 +484,11 @@ class PatientVerify(views.APIView):
 
             else:
                 user = get_user_model()
-                passed_username = (passed_data["email"]).lower().trim()
-                user = user.objects.create_user(username=passed_username, password=passed_data["password"].trim())
+                passed_username = (passed_data["email"]).lower().strip()
+                user = user.objects.create_user(username=passed_username, password=passed_data["password"].strip())
                 user.first_name = passed_data["firstname"]
                 user.last_name = passed_data["lastname"]
-                user.email = (passed_data["email"]).lower().trim()
+                user.email = (passed_data["email"]).lower().strip()
 
                 user.save()
                 return Response({
