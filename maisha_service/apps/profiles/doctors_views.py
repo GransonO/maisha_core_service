@@ -23,9 +23,10 @@ class Profiles(views.APIView):
     def post(request):
         """ Add Profiles to DB """
         passed_data = request.data
+        print("------------------------------Passed Data : {}".format(passed_data))
         try:
             activate = DoctorsActivation.objects.filter(
-                user_email=passed_data["email"],
+                user_email=passed_data["email"].strip(),
                 activation_code=int(passed_data["activation_code"])
             )
             if activate.count() < 1:
@@ -48,6 +49,7 @@ class Profiles(views.APIView):
                     }, status.HTTP_200_OK)
 
         except Exception as E:
+            print("------------------------------Passed Data : {}".format(E))
             bugsnag.notify(
                 Exception('Profile Post: {}'.format(E))
             )
@@ -95,7 +97,7 @@ class CodeVerify(views.APIView):
         passed_data = request.data
         try:
             activate = DoctorsActivation.objects.filter(
-                user_email=passed_data["email"],
+                user_email=passed_data["email"].strip(),
                 activation_code=int(passed_data["activation_code"])
             )
             if activate.count() < 1:
