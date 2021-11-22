@@ -1,5 +1,9 @@
+aioredis==1.3.1
 asgiref==3.4.1
+async-timeout==4.0.1
 attrs==21.2.0
+autobahn==21.3.1
+Automat==20.2.0
 awsebcli==3.20.2
 bcrypt==3.2.0
 blessed==1.19.0
@@ -11,16 +15,20 @@ catalogue==2.0.4
 cement==2.8.2
 certifi==2021.5.30
 cffi==1.14.6
+channels==3.0.4
+channels-redis==3.3.1
 chardet==4.0.0
 charset-normalizer==2.0.1
 click==7.1.2
 cloudinary==1.26.0
 colorama==0.4.3
 colorclass==2.2.0
+constantly==15.1.0
 coreapi==2.3.3
 coreschema==0.0.4
 cryptography==35.0.0
 cymem==2.0.5
+daphne==3.0.2
 dj-database-url==0.5.0
 Django==3.2.5
 django-background-tasks==1.2.5
@@ -41,7 +49,10 @@ entrypoints==0.3
 flake8==3.9.2
 future==0.16.0
 gunicorn==20.1.0
+hiredis==2.0.0
+hyperlink==21.0.0
 idna==3.2
+incremental==21.3.0
 itypes==1.2.0
 Jinja2==3.0.1
 jmespath==0.10.0
@@ -53,6 +64,7 @@ MarkupSafe==2.0.1
 mccabe==0.6.1
 mock==4.0.3
 more-itertools==8.8.0
+msgpack==1.0.2
 murmurhash==1.0.5
 mypy==0.910
 mypy-extensions==0.4.3
@@ -69,12 +81,15 @@ plac==1.3.3
 poetry-version==0.1.5
 preshed==3.0.5
 psycopg2-binary==2.9.1
+pyasn1==0.4.8
+pyasn1-modules==0.2.8
 pycodestyle==2.7.0
 pycparser==2.20
 pydantic==1.8.2
 pyflakes==2.3.1
 PyJWT==2.1.0
 PyNaCl==1.4.0
+pyOpenSSL==21.0.0
 pyparsing==2.4.7
 pyrsistent==0.18.0
 python-dateutil==2.8.1
@@ -90,6 +105,7 @@ scikit-learn==0.24.2
 scipy==1.7.0
 semantic-version==2.8.5
 sendgrid==6.7.1
+service-identity==21.1.0
 sib-api-v3-sdk==7.2.0
 six==1.14.0
 smart-open==5.1.0
@@ -106,6 +122,8 @@ threadpoolctl==2.2.0
 toml==0.10.2
 tomlkit==0.5.11
 tqdm==4.61.2
+Twisted==21.7.0
+txaio==21.2.1
 typer==0.3.2
 types-pytz==2021.1.2
 types-PyYAML==5.4.10
@@ -117,3 +135,4 @@ wcwidth==0.1.9
 WebOb==1.8.7
 websocket-client==0.59.0
 whitenoise==5.2.0
+zope.interface==5.4.0

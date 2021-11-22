@@ -40,6 +40,14 @@ environ.Env.read_env(env_file=os.path.join(BASE_DIR, '.env'))
 # Application definition
 
 INSTALLED_APPS = [
+
+    # third party apps
+    'channels',
+    'corsheaders',
+    'rest_framework',
+    'rest_framework.authtoken',
+    'background_task',
+
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -56,12 +64,8 @@ INSTALLED_APPS = [
     'maisha_service.apps.support',
     'maisha_service.apps.payments.mpesa',
     'maisha_service.apps.core',
+    'maisha_service.apps.ws_connect',
 
-    # third party apps
-    'corsheaders',
-    'rest_framework',
-    'rest_framework.authtoken',
-    'background_task',
 ]
 
 REST_FRAMEWORK = {
@@ -109,7 +113,9 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = 'maisha_service.wsgi.application'
+# WSGI_APPLICATION = 'maisha_service.wsgi.application'
+ASGI_APPLICATION = 'maisha_service.asgi.application'
+
 CORS_ORIGIN_ALLOW_ALL = True
 
 AUTH_USER_MODEL = 'authentication.User'
@@ -146,6 +152,28 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
+# Django channels layer
+CHANNEL_LAYERS = {
+    'default': {
+        # Method 1: Via redis lab
+        # 'BACKEND': 'channels_redis.core.RedisChannelLayer',
+        # 'CONFIG': {
+        #     "hosts": [
+        #       'redis://h:<password>;@<redis Endpoint>:<port>'
+        #     ],
+        # },
+
+        # Method 2: Via local Redis
+        'BACKEND': 'channels_redis.core.RedisChannelLayer',
+        'CONFIG': {
+             "hosts": [('127.0.0.1', 6379)],
+        },
+
+        # Method 3: Via In-memory channel layer
+        # Using this method.
+        # "BACKEND": "channels.layers.InMemoryChannelLayer"
+    },
+}
 
 # Internationalization
 # https://docs.djangoproject.com/en/3.2/topics/i18n/

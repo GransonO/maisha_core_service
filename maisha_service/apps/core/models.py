@@ -1,9 +1,17 @@
+import uuid
+
 from django.db import models
 
 
 # Create your models here.
 class MaishaCore(models.Model):
-    session_id = models.CharField(unique=True, max_length=350, default='')
+    session_id = models.CharField(
+        unique=True,
+        max_length=350,
+        default=uuid.uuid4,
+        null=False,
+        editable=False
+    )
     doctor_id = models.CharField(max_length=350, default='')  # Accepting doctor
     patient_id = models.CharField(max_length=350, default='')
     description = models.TextField(default='')

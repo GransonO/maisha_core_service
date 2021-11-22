@@ -300,32 +300,26 @@ class ResetPass(views.APIView):
                         reset_code=random_code,
                     )
                     add_reset.save()
+                    ResetPass.send_support_email((passed_data["email"]).lower(), random_code)
                     return Response({
                         "status": "reset success",
                         "code": 1,
                         "success": True
                     }, status.HTTP_200_OK)
+
                 else:
                     # Update Reset
-                    value = ResetPass.send_support_email((passed_data["email"]).lower(), random_code)
-                    if value == 200:
-                        print("------------------------------Updated ")
-                        Reset.objects.filter(
-                            user_email=(passed_data["email"]).lower().strip()
-                        ).update(
-                            reset_code=random_code,
-                            )
-                        return Response({
-                                "status": "reset success",
-                                "code": 1,
-                                "success": True
-                                }, status.HTTP_200_OK)
-                    else:
-                        return Response({
-                                "status": "reset failed",
-                                "code": 0,
-                                "success": True
-                                }, status.HTTP_200_OK)
+                    ResetPass.send_support_email((passed_data["email"]).lower(), random_code)
+                    Reset.objects.filter(
+                        user_email=(passed_data["email"]).lower().strip()
+                    ).update(
+                        reset_code=random_code,
+                        )
+                    return Response({
+                            "status": "reset success",
+                            "code": 1,
+                            "success": True
+                            }, status.HTTP_200_OK)
 
         except Exception as E:
             print("Error: {}".format(E))
