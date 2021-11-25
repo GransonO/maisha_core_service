@@ -9,6 +9,8 @@ https://docs.djangoproject.com/en/3.2/howto/deployment/asgi/
 
 import os
 
+import django
+
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'maisha_service.settings')
 
 from channels.auth import AuthMiddlewareStack
@@ -17,6 +19,8 @@ from django.core.asgi import get_asgi_application
 
 # import maisha_service.settings
 import maisha_service.apps.ws_connect.routing as route
+
+django.setup()
 
 application = ProtocolTypeRouter({
     # For HTTP Requests
