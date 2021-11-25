@@ -11,8 +11,6 @@ import os
 
 import django
 
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'maisha_service.settings')
-
 from channels.auth import AuthMiddlewareStack
 from channels.routing import ProtocolTypeRouter, URLRouter
 from django.core.asgi import get_asgi_application
@@ -20,6 +18,7 @@ from django.core.asgi import get_asgi_application
 # import maisha_service.settings
 import maisha_service.apps.ws_connect.routing as route
 
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'settings')
 django.setup()
 
 application = ProtocolTypeRouter({

@@ -378,8 +378,7 @@ class CoreChats(views.APIView):
                 }, status.HTTP_200_OK
             )
 
-    @staticmethod
-    def put(request):
+    def put(self, request):
         # Update message
         try:
             passed_data = request.data
