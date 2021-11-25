@@ -28,7 +28,7 @@ REFRESH_TOKEN_SECRET = 'j436uwc5v2q^(p%s8xco0+$tzx)$2h_7*+o)hg6wvs4*2l*6x6c'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ["localhost", "127.0.0.1", "hello-alfie.herokuapp.com", "*"]
+ALLOWED_HOSTS = ["localhost", "127.0.0.1", "maisha-service.herokuapp.com", "*"]
 
 env = environ.Env(
     # set casting, default value
@@ -156,18 +156,19 @@ AUTH_PASSWORD_VALIDATORS = [
 CHANNEL_LAYERS = {
     'default': {
         # Method 1: Via redis lab
-        # 'BACKEND': 'channels_redis.core.RedisChannelLayer',
-        # 'CONFIG': {
-        #     "hosts": [
-        #       'redis://h:<password>;@<redis Endpoint>:<port>'
-        #     ],
-        # },
-
-        # Method 2: Via local Redis
         'BACKEND': 'channels_redis.core.RedisChannelLayer',
         'CONFIG': {
-             "hosts": [('127.0.0.1', 6379)],
+            "hosts": [
+                # os.environ.get('REDIS_URL', 'redis://localhost:6379')
+                'redis://:pa773b8fd5bc0769b23f41153fa258b08c3d16074e792be6de65925ca2d210e3b@ec2-52-215-173-181.eu-west-1.compute.amazonaws.com:30660'
+            ],
         },
+
+        # # Method 2: Via local Redis
+        # 'BACKEND': 'channels_redis.core.RedisChannelLayer',
+        # 'CONFIG': {
+        #      "hosts": [('127.0.0.1', 6379)],
+        # },
 
         # Method 3: Via In-memory channel layer
         # Using this method.
