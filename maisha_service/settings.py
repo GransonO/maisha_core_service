@@ -155,7 +155,7 @@ AUTH_PASSWORD_VALIDATORS = [
 # Django channels layer
 CHANNEL_LAYERS = {
     'default': {
-        # Method 1: Via redis lab
+        # Method 1: Via redis lab For Heroku
         'BACKEND': 'channels_redis.core.RedisChannelLayer',
         'CONFIG': {
             "hosts": [
