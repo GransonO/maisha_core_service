@@ -31,7 +31,7 @@ class SocketChat(AsyncWebsocketConsumer):
 
     # Receive message from WebSocket
     async def receive(self, text_data):
-        print("text_data ----------- {}".format(text_data))
+        print("text_data ----------- {}".format(text_data["message"]))
         chat_data = json.loads(text_data)
         # Send message to room group
         print("chat_data ----------- {}".format(text_data))
