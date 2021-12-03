@@ -33,9 +33,9 @@ class SocketChat(AsyncWebsocketConsumer):
     async def receive(self, text_data):
         print("text_data *** ----------- {}".format(text_data))
         print("text_data *** ----------- {}".format(type(text_data)))
-        # chat_data = json.loads(text_data)
-        # print("chat_data ----------- {}".format(type(chat_data)))
-        # print("chat_data ----------- {}".format(chat_data["message"]))
+        chat_data = json.loads(text_data)
+        print("chat_data ----------- {}".format(type(chat_data)))
+        print("chat_data ----------- {}".format(chat_data["message"]))
 
         # Send message to room group
         # chat_result = await self.persist_to_db(chat_data)
