@@ -22,6 +22,7 @@ class Profiles(views.APIView):
     def post(request):
         """ Add Profiles to DB """
         passed_data = request.data
+        print("The passed data is {}".format(passed_data))
         try:
             # Save data to DB
             user_reg_id = uuid.uuid1()
