@@ -48,6 +48,7 @@ class Register(views.APIView):
                     if value == 200:
                         activation_data.save()
                     else:
+                        print("The value -----{}".format(value))
                         return Response({
                             "status": "failed",
                             "message": "Email sending error",

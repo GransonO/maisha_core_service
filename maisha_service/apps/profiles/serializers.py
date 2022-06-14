@@ -1,6 +1,7 @@
 from rest_framework.serializers import ModelSerializer, SerializerMethodField
 from .models import (DoctorsProfiles, PatientProfile, Notifiers, PreferredDoctors,
-                     Allergies, RecurrentIssues, Dependants, Speciality)
+                     Allergies, RecurrentIssues, Dependants, Speciality,
+                     PatientsAccount, DoctorsAccount,)
 
 
 class DoctorProfileSerializer(ModelSerializer):
@@ -16,6 +17,7 @@ class PatientsProfileSerializer(ModelSerializer):
     patient_dependants = SerializerMethodField('get_patients_dependants')
     patient_notifiers = SerializerMethodField('get_patients_notifiers')
     patient_preferred_doctors = SerializerMethodField('get_patients_preferred_doctors')
+    patient_account_details = SerializerMethodField('get_patient_account_details')
 
     class Meta:
         model = PatientProfile
@@ -25,6 +27,12 @@ class PatientsProfileSerializer(ModelSerializer):
     def get_patients_allergies(obj):
         return list(
             Allergies.objects.filter(patient_id=obj.user_id).values()
+        )
+
+    @staticmethod
+    def get_patient_account_details(obj):
+        return list(
+            PatientsAccount.objects.filter(patient_id=obj.user_id).values()
         )
 
     @staticmethod
@@ -97,3 +105,18 @@ class SpecialitySerializer(ModelSerializer):
     class Meta:
         model = Speciality
         fields = '__all__'
+
+
+class PatientsAccountSerializer(ModelSerializer):
+
+    class Meta:
+        model = PatientsAccount
+        fields = '__all__'
+
+
+class DoctorsAccountSerializer(ModelSerializer):
+
+    class Meta:
+        model = DoctorsAccount
+        fields = '__all__'
+

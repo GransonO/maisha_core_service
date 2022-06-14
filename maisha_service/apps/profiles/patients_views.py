@@ -6,7 +6,7 @@ from rest_framework import views,  status
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny
 from rest_framework.generics import ListAPIView
-from .models import (PatientProfile, Allergies as AllergyDB, RecurrentIssues, Dependants, Notifiers)
+from .models import (PatientProfile, Allergies as AllergyDB, RecurrentIssues, Dependants, Notifiers, PatientsAccount)
 from .serializers import (PatientsProfileSerializer, AllergiesSerializer,
                           RecurrentIssuesSerializer, NotifierSerializer, DependantsSerializer)
 from ..authentication.models import PatientActivation
@@ -28,6 +28,12 @@ class Profiles(views.APIView):
             serializer = PatientsProfileSerializer(data=passed_data, partial=True)
             serializer.is_valid(raise_exception=True)
             serializer.save(user_id=user_reg_id, is_active=True)
+
+            # Create user account table details
+            accounts_details = PatientsAccount(
+                patient_id=passed_data["user_id"]
+            )
+            accounts_details.save()
 
             return Response({
                 "status": "success",

@@ -253,7 +253,6 @@ def generate_access_token(user):
     access_token = jwt.encode(access_token_payload, settings.SECRET_KEY, algorithm='HS256')
     return access_token
 
-
 def generate_refresh_token(user):
     refresh_token_payload = {
         'user_id': user.id,
@@ -375,7 +374,7 @@ class ResetPass(views.APIView):
     @staticmethod
     def send_support_email(email, code):
         subject = 'Password reset'
-        message = EmailTemplates.reset_email(code)
+        message = EmailTemplates.maisha_reset_email(code)
         load_dotenv()
         api_key = os.environ['MJ_API_KEY_PUBLIC']
         api_secret = os.environ['MJ_API_KEY_PRIVATE']
@@ -384,8 +383,8 @@ class ResetPass(views.APIView):
             'Messages': [
                 {
                     "From": {
-                        "Email": "helloalfie@epitomesoftware.live",
-                        "Name": "Hello Alfie"
+                        "Email": "maisha@epitomesoftware.live",
+                        "Name": "Maisha Service"
                     },
                     "To": [
                         {
@@ -461,8 +460,8 @@ class DoctorVerify(views.APIView):
             'Messages': [
                 {
                     "From": {
-                        "Email": "helloalfie@epitomesoftware.live",
-                        "Name": "Hello Alfie"
+                        "Email": "maisha@epitomesoftware.live",
+                        "Name": "Maisha Service"
                     },
                     "To": [
                         {

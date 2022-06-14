@@ -97,3 +97,20 @@ class CoreComplaints(models.Model):
         """ String representation of db object """
         return 'complaint_id : {} ,complaint: {}'.format(
             self.complaint_id, self.complaint)
+
+
+class DoctorPatientCreditTransfer(models.Model):
+    doctor_id = models.CharField(max_length=350, default='non', unique=False)
+    patient_id = models.CharField(max_length=350, default='non', unique=False)
+    session_id = models.CharField(max_length=350, default='non', unique=False)
+    amount_transferred = models.FloatField(default=0.0)
+    transaction_status = models.CharField(max_length=350, default='non')
+    """ COMPLETE, INCOMPLETE"""
+
+    createdAt = models.DateTimeField(auto_now_add=True, null=True)
+    updatedAt = models.DateTimeField(auto_now=True, null=True)
+
+    def __str__(self):
+        """ String representation of db object """
+        return 'session_id : {} ,amount_transferred: {}'.format(
+            self.session_id, self.amount_transferred)

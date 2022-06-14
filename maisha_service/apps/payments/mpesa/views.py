@@ -1,9 +1,11 @@
 # Create your views here.
 import bugsnag
+from datetime import datetime
 from rest_framework import views,  status
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny
 from .models import MpesaEntryDB
+from ...profiles.models import PatientsAccount
 
 
 class MpesaCallback(views.APIView):
@@ -54,15 +56,28 @@ class MpesaCallback(views.APIView):
         """Get the Mpesa value deposited"""
         passed_data = request.data
         trans_num = passed_data["MerchantRequestID"]
+        patient_id = passed_data["patient_id"]
         try:
             result = MpesaEntryDB.objects.get(
                 MerchantRequestID=trans_num)
+
+            # Balance credit tables
+            patient_account = PatientsAccount.objects.get(
+                patient_id=patient_id)
+
+            PatientsAccount.objects.filter(
+                patient_id=patient_id
+            ).update(
+                aggregate_available_amount=patient_account.aggregate_available_amount + result.Amount,
+                aggregate_deposited_amount=patient_account.aggregate_deposited_amount + result.Amount,
+                last_top_up_date=datetime.now
+            )
+
             print("The response is : {}".format(result))
             return Response({
                     "status": "success",
                     "code": 1,
-                    "customer_phone": result.Client_phone,
-                    "receipt_number": result.MpesaReceiptNumber,
+                    "customer_credit": patient_account.aggregate_available_amount + result.Amount,
                     "amount": result.Amount,
                 }, status.HTTP_200_OK)
 

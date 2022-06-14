@@ -1,6 +1,6 @@
 import datetime
 
-from .models import MaishaCore, SessionBounce, MaishaChats, CoreComplaints
+from .models import MaishaCore, SessionBounce, MaishaChats, CoreComplaints, DoctorPatientCreditTransfer
 from rest_framework import serializers
 from ..profiles.models import DoctorsProfiles, PatientProfile
 
@@ -47,3 +47,11 @@ class CoreComplaintsSerializer(serializers.ModelSerializer):
     class Meta:
         model = CoreComplaints
         fields = '__all__'
+
+
+class DoctorPatientCreditTransferSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = DoctorPatientCreditTransfer
+        fields = '__all__'
+

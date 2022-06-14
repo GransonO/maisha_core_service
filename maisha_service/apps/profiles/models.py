@@ -203,3 +203,39 @@ class Notifiers(models.Model):
         """ String representation of db object """
         return 'patient_id : {} ,relationship: {}'.format(
             self.patient_id, self.relationship)
+
+
+class PatientsAccount(models.Model):
+    """ Patients current amount balance"""
+    patient_id = models.CharField(max_length=350, default='non', unique=True)
+    aggregate_deposited_amount = models.FloatField(default=0.0)
+    aggregate_used_amount = models.FloatField(default=0.0)
+    aggregate_available_amount = models.FloatField(default=0.0)
+    last_transaction_date = models.DateTimeField(null=True)
+    last_top_up_date = models.DateTimeField(null=True)
+
+    createdAt = models.DateTimeField(auto_now_add=True, null=True)
+    updatedAt = models.DateTimeField(auto_now=True, null=True)
+
+    def __str__(self):
+        """ String representation of db object """
+        return 'patient_id : {} ,aggregate_available_amount: {}'.format(
+            self.patient_id, self.aggregate_available_amount)
+
+
+class DoctorsAccount(models.Model):
+    """ Doctors current amount balance"""
+    doctor_id = models.CharField(max_length=350, default='non', unique=True)
+    aggregate_collected_amount = models.FloatField(default=0.0)
+    aggregate_withdrawn_amount = models.FloatField(default=0.0)
+    aggregate_available_amount = models.FloatField(default=0.0)
+    last_transaction_date = models.DateTimeField(null=True)
+    request_date = models.DateTimeField(default=datetime.now)
+
+    createdAt = models.DateTimeField(auto_now_add=True, null=True)
+    updatedAt = models.DateTimeField(auto_now=True, null=True)
+
+    def __str__(self):
+        """ String representation of db object """
+        return 'doctor_id : {} ,aggregate_available_amount: {}'.format(
+            self.doctor_id, self.aggregate_available_amount)
