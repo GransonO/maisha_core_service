@@ -32,7 +32,7 @@ class Profiles(views.APIView):
 
             # Create user account table details
             accounts_details = PatientsAccount(
-                patient_id=passed_data["user_id"]
+                patient_id=user_reg_id
             )
             accounts_details.save()
 
