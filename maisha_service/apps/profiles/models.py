@@ -110,7 +110,7 @@ class PatientProfile(models.Model):
     # Health details
     weight = models.IntegerField(verbose_name='weight', null=True)
     height = models.IntegerField(verbose_name='height', null=True)
-    preferred_doctor_gender = models.CharField(max_length=250, null=True)
+    preferred_doctor_gender = models.CharField(max_length=250, default='EITHER')
     preferred_hospital = models.CharField(max_length=250, null=True)
 
     createdAt = models.DateTimeField(auto_now_add=True, null=True)
