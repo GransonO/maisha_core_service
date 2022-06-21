@@ -49,9 +49,10 @@ class CoreRequest(views.APIView):
             if passed_data["gender"] != "":
                 doc_gender = Q(gender__exact=gender)
 
-            print("------> is_online: {}, doc_speciality: {}, doc_gender: {}".format(is_online, doc_speciality, doc_gender))
+            print("------> is_online: {}, doc_speciality: {}, doc_gender: {}".format(
+                is_online, doc_speciality, doc_gender))
             # Get the filtered doctors
-            doctors = DoctorsProfiles.objects.filter(is_online & doc_gender & doc_speciality).values()
+            doctors = DoctorsProfiles.objects.filter(is_online & doc_speciality).values()
 
             patient = PatientProfile.objects.get(user_id=patient_id)
             patient_profile = PatientsProfileSerializer(patient).data
