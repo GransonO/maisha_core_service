@@ -272,7 +272,10 @@ class RateSession(views.APIView):
 
             DoctorsProfiles.objects.filter(user_id=session.doctor_id).update(is_online=True)
             # Transfer funds if rating above
-            if passed_data["patient_rating"] > 3:
+            if passed_data["doctor_completed"]:
+               #  Do nothing
+
+            elif passed_data["patient_rating"] > 3:
                 # Update Patients amount
                 patient_account = PatientsAccount.objects.get(
                     patient_id=session.patient_id)
