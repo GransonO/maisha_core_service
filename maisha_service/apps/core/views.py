@@ -272,8 +272,8 @@ class RateSession(views.APIView):
 
             DoctorsProfiles.objects.filter(user_id=session.doctor_id).update(is_online=True)
             # Transfer funds if rating above
-            if passed_data["patient_rating"] is not None:
-                if passed_data["patient_rating"] > 3:
+            if passed_data["session_doctor_rating"] is not None:
+                if passed_data["session_doctor_rating"] > 3:
                     # Update Patients amount
                     patient_account = PatientsAccount.objects.get(
                         patient_id=session.patient_id)
@@ -290,7 +290,7 @@ class RateSession(views.APIView):
 
                     # Update Doctors amount
                     doctors_account = DoctorsAccount.objects.get(
-                        doctor_id=session.doctor_id)
+                        doctor_id=passed_data["doc_id"])
 
                     doctors_serializer = DoctorsAccountSerializer(
                         doctors_account, data={
