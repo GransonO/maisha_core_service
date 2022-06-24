@@ -272,35 +272,36 @@ class RateSession(views.APIView):
 
             DoctorsProfiles.objects.filter(user_id=session.doctor_id).update(is_online=True)
             # Transfer funds if rating above
-            if passed_data["patient_rating"] is not None & passed_data["patient_rating"] > 3:
-                # Update Patients amount
-                patient_account = PatientsAccount.objects.get(
-                    patient_id=session.patient_id)
+            if passed_data["patient_rating"] is not None:
+                if passed_data["patient_rating"] > 3:
+                    # Update Patients amount
+                    patient_account = PatientsAccount.objects.get(
+                        patient_id=session.patient_id)
 
-                patients_amount = patient_account.aggregate_available_amount - session.session_value
-                patient_serializer = PatientsAccountSerializer(
-                    patient_account, data={
-                        "aggregate_available_amount": patients_amount,
-                        "aggregate_used_amount": patient_account.aggregate_used_amount + session.session_value,
-                        "last_transaction_date": timezone.now()
-                    }, partial=True)
-                patient_serializer.is_valid(raise_exception=True)
-                patient_serializer.save()
+                    patients_amount = patient_account.aggregate_available_amount - session.session_value
+                    patient_serializer = PatientsAccountSerializer(
+                        patient_account, data={
+                            "aggregate_available_amount": patients_amount,
+                            "aggregate_used_amount": patient_account.aggregate_used_amount + session.session_value,
+                            "last_transaction_date": timezone.now()
+                        }, partial=True)
+                    patient_serializer.is_valid(raise_exception=True)
+                    patient_serializer.save()
 
-                # Update Doctors amount
-                doctors_account = DoctorsAccount.objects.get(
-                    doctor_id=session.doctor_id)
+                    # Update Doctors amount
+                    doctors_account = DoctorsAccount.objects.get(
+                        doctor_id=session.doctor_id)
 
-                doctors_serializer = DoctorsAccountSerializer(
-                    doctors_account, data={
-                        "aggregate_available_amount": doctors_account.aggregate_available_amount + session.session_value,
-                        "aggregate_collected_amount": doctors_account.aggregate_collected_amount + session.session_value,
-                        "last_transaction_date": timezone.now()
-                    }, partial=True)
-                doctors_serializer.is_valid(raise_exception=True)
-                doctors_serializer.save()
+                    doctors_serializer = DoctorsAccountSerializer(
+                        doctors_account, data={
+                            "aggregate_available_amount": doctors_account.aggregate_available_amount + session.session_value,
+                            "aggregate_collected_amount": doctors_account.aggregate_collected_amount + session.session_value,
+                            "last_transaction_date": timezone.now()
+                        }, partial=True)
+                    doctors_serializer.is_valid(raise_exception=True)
+                    doctors_serializer.save()
 
-                MaishaCore.objects.filter(session_id=passed_data["session_id"]).update(session_settled=True)
+                    MaishaCore.objects.filter(session_id=passed_data["session_id"]).update(session_settled=True)
 
             return Response(
                 {
