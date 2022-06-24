@@ -5,15 +5,16 @@ import time
 
 from dotenv import load_dotenv
 from django.db.models import Q
+from django.utils import timezone
 
-from .agora.RtcTokenBuilder import RtcTokenBuilder, Role_Subscriber, Role_Publisher
+from .agora.RtcTokenBuilder import RtcTokenBuilder, Role_Subscriber
 from rest_framework import views, generics, status
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny
 from .serializers import MaishaCoreSerializer, SessionBounceSerializer, CoreChatsSerializer, CoreComplaintsSerializer
 from .models import MaishaCore, SessionBounce, MaishaChats, CoreComplaints
-from ..profiles.models import PatientProfile, DoctorsProfiles
-from ..profiles.serializers import PatientsProfileSerializer
+from ..profiles.models import PatientProfile, DoctorsProfiles, PatientsAccount, DoctorsAccount
+from ..profiles.serializers import PatientsProfileSerializer, PatientsAccountSerializer, DoctorsAccountSerializer
 from ..notifiers.FCM.fcm_requester import FcmCore
 
 
@@ -270,6 +271,37 @@ class RateSession(views.APIView):
             serializer.save()
 
             DoctorsProfiles.objects.filter(user_id=session.doctor_id).update(is_online=True)
+            # Transfer funds if rating above
+            if passed_data["patient_rating"] > 3:
+                # Update Patients amount
+                patient_account = PatientsAccount.objects.get(
+                    patient_id=session.patient_id)
+
+                patients_amount = patient_account.aggregate_available_amount - session.session_value
+                patient_serializer = PatientsAccountSerializer(
+                    patient_account, data={
+                        "aggregate_available_amount": patients_amount,
+                        "aggregate_used_amount": patient_account.aggregate_used_amount + session.session_value,
+                        "last_transaction_date": timezone.now()
+                    }, partial=True)
+                patient_serializer.is_valid(raise_exception=True)
+                patient_serializer.save()
+
+                # Update Doctors amount
+                doctors_account = DoctorsAccount.objects.get(
+                    doctor_id=session.doctor_id)
+
+                doctors_serializer = DoctorsAccountSerializer(
+                    doctors_account, data={
+                        "aggregate_available_amount": doctors_account.aggregate_available_amount + session.session_value,
+                        "aggregate_collected_amount": doctors_account.aggregate_collected_amount + session.session_value,
+                        "last_transaction_date": timezone.now()
+                    }, partial=True)
+                doctors_serializer.is_valid(raise_exception=True)
+                doctors_serializer.save()
+
+                MaishaCore.objects.filter(session_id=passed_data["session_id"]).update(session_settled=True)
+
             return Response(
                 {
                     "success": True,

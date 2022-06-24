@@ -41,6 +41,9 @@ class DoctorsProfiles(models.Model):
     id_back = models.CharField(max_length=1250, null=True)
     practice_certificate = models.CharField(max_length=1250, null=True)
 
+    # Accounting
+    service_charge = models.FloatField(default=0.0)
+
     createdAt = models.DateTimeField(auto_now_add=True, null=True)
     updatedAt = models.DateTimeField(auto_now=True, null=True)
 

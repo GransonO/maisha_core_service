@@ -6,9 +6,17 @@ from .models import (DoctorsProfiles, PatientProfile, Notifiers, PreferredDoctor
 
 class DoctorProfileSerializer(ModelSerializer):
 
+    doctor_account_details = SerializerMethodField('get_doctor_account_details')
+
     class Meta:
         model = DoctorsProfiles
         fields = '__all__'
+
+    @staticmethod
+    def get_doctor_account_details(obj):
+        return list(
+            DoctorsAccount.objects.filter(doctor_id=obj.user_id).values()
+        )
 
 
 class PatientsProfileSerializer(ModelSerializer):
