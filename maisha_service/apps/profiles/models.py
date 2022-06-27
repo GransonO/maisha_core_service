@@ -1,5 +1,6 @@
 from django.db import models
 from datetime import datetime
+from django.utils import timezone
 
 
 class DoctorsProfiles(models.Model):
@@ -233,7 +234,7 @@ class DoctorsAccount(models.Model):
     aggregate_withdrawn_amount = models.FloatField(default=0.0)
     aggregate_available_amount = models.FloatField(default=0.0)
     last_transaction_date = models.DateTimeField(null=True)
-    request_date = models.DateTimeField(default=datetime.now)
+    request_date = models.DateTimeField(default=timezone.now)
 
     createdAt = models.DateTimeField(auto_now_add=True, null=True)
     updatedAt = models.DateTimeField(auto_now=True, null=True)

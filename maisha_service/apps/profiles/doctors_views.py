@@ -8,7 +8,7 @@ from rest_framework.permissions import AllowAny
 from rest_framework.generics import ListAPIView
 
 from ..notifiers.FCM.fcm_requester import FcmCore
-from .models import DoctorsProfiles, Speciality
+from .models import DoctorsProfiles, Speciality, DoctorsAccount
 from .serializers import DoctorProfileSerializer, SpecialitySerializer
 from ..authentication.models import DoctorsActivation
 
@@ -41,7 +41,10 @@ class Profiles(views.APIView):
                 serializer = DoctorProfileSerializer(data=passed_data, partial=True)
                 serializer.is_valid(raise_exception=True)
                 serializer.save(user_id=user_reg_id, is_active=True)
-
+                doc_account = DoctorsAccount(
+                    doctor_id=user_reg_id
+                )
+                doc_account.save()
                 return Response({
                     "status": "success",
                     "user_id": user_reg_id,
