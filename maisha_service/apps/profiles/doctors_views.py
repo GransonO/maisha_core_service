@@ -2,6 +2,7 @@ from django.contrib.postgres.search import SearchQuery, SearchVector, SearchRank
 import uuid
 
 import bugsnag
+from django.db.models import Q
 from rest_framework import views,  status
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny
@@ -276,11 +277,10 @@ class SpecialitySearch(views.APIView):
     @staticmethod
     def post(request):
         passed_data = request.data
-        vector = SearchVector('speciality_name', 'speciality_description',)
-        query = SearchQuery(passed_data["query"])
-        doctor = Speciality.objects.annotate(
-            rank=SearchRank(vector, query)
-        ).filter(
-            rank__gte=0.001
-        ).order_by('-rank')
-        return Response(list(doctor.values()), status.HTTP_200_OK)
+
+        speciality_name = Q(speciality_name__icontains=passed_data["query"])
+        speciality_description = Q(speciality_description__icontains=passed_data["query"])
+
+        doctors = Speciality.objects.filter(speciality_name | speciality_description).values()
+
+        return Response(list(doctors), status.HTTP_200_OK)

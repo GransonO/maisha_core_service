@@ -6,6 +6,7 @@ from rest_framework import views,  status
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny
 from rest_framework.generics import ListAPIView
+from django.db.models import Q
 
 from django.contrib.postgres.search import SearchQuery, SearchVector, SearchRank
 from ..notifiers.FCM.fcm_requester import FcmCore
@@ -166,7 +167,13 @@ class SearchBlog(views.APIView):
     @staticmethod
     def post(request):
         passed_data = request.data
-        vector = SearchVector('title', 'body', 'interest')
-        query = SearchQuery(passed_data["query"])
-        blog = BlogsDB.objects.annotate(rank=SearchRank(vector, query)).filter(rank__gte=0.001).order_by('-rank')
+        # vector = SearchVector('title', 'body', 'interest')
+        # query = SearchQuery(passed_data["query"])
+        # blog = BlogsDB.objects.annotate(rank=SearchRank(vector, query)).filter(rank__gte=0.001).order_by('-rank')
+
+        title = Q(title__icontains=passed_data["query"])
+        body = Q(body__icontains=passed_data["query"])
+        interest = Q(interest__icontains=passed_data["query"])
+        blog = BlogsDB.objects.filter(title | body | interest)
+
         return Response(list(blog.values()), status.HTTP_200_OK)
