@@ -254,6 +254,52 @@ class CoreAnalysis(views.APIView):
             )
 
 
+class OnGoingSession(views.APIView):
+    permission_classes = [AllowAny]
+
+    @staticmethod
+    def post(request):
+        # Patient fetch ongoing session
+        passed_data = request.data
+        try:
+            session = MaishaCore.objects.filter(
+                patient_id=passed_data["patient_id"],
+                patient_session_status="ONGOING").values()
+            return Response(list(session), status.HTTP_200_OK)
+
+        except Exception as E:
+            print("----------------Exception---------------- {}".format(E))
+            bugsnag.notify(
+                Exception('CoreRequest Post: {}'.format(E))
+            )
+            return Response(
+                {
+                    "message": "User has no ongoing session"
+                }, status.HTTP_200_OK
+            )
+
+    @staticmethod
+    def put(request):
+        # Doctor fetch ongoing session
+        passed_data = request.data
+        try:
+            session = MaishaCore.objects.filter(
+                doctor_id=passed_data["doctor_id"],
+                doctor_session_status="ONGOING").values()
+            return Response(list(session), status.HTTP_200_OK)
+
+        except Exception as E:
+            print("----------------Exception---------------- {}".format(E))
+            bugsnag.notify(
+                Exception('CoreRequest Post: {}'.format(E))
+            )
+            return Response(
+                {
+                    "message": "User has no ongoing session"
+                }, status.HTTP_200_OK
+            )
+
+
 class RateSession(views.APIView):
 
     permission_classes = [AllowAny]

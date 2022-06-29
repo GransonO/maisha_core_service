@@ -21,6 +21,9 @@ class MaishaCore(models.Model):
     type = models.CharField(max_length=50, default='')  # VIDEO CHAT
     # REQUESTED, ACCEPTED, STARTED, COMPLETED, CANCELLED, IGNORED
     status = models.CharField(max_length=350, default='REQUESTED')
+    # STATIC, ONGOING, COMPLETED
+    patient_session_status = models.CharField(max_length=350, default='STATIC')
+    doctor_session_status = models.CharField(max_length=350, default='STATIC')
 
     # Patient stuff
     patient_rating = models.FloatField(default=0.0)
