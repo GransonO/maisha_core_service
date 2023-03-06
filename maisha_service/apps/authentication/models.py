@@ -7,7 +7,7 @@ class User(AbstractUser):
 
 
 class Reset(models.Model):
-    """Profiles ref Number"""
+    """Reset code flow"""
     reset_code = models.CharField(max_length=4)
     user_email = models.CharField(unique=True, max_length=250, default='non')
 
@@ -21,7 +21,7 @@ class Reset(models.Model):
 
 
 class DoctorsActivation(models.Model):
-    """Profiles ref Number"""
+    """Doctors Activation Model"""
     activation_code = models.IntegerField()
     user_email = models.CharField(unique=True, max_length=250, default='non')
 
@@ -35,7 +35,7 @@ class DoctorsActivation(models.Model):
 
 
 class PatientActivation(models.Model):
-    """Profiles ref Number"""
+    """Patients Activation Model"""
     activation_code = models.IntegerField()
     user_email = models.CharField(unique=True, max_length=250, default='non')
 

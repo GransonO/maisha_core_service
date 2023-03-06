@@ -15,6 +15,7 @@ from rest_framework import views, status, generics
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny
 
+from .util import generate_refresh_token, generate_access_token, EmailTemplates
 from ..profiles.models import DoctorsProfiles
 from .models import Reset, DoctorsActivation
 
@@ -35,7 +36,6 @@ class Register(views.APIView):
         try:
             # Check if it exists
             user_exists = Register.get_user_exist(passed_data)
-            print("--------------- 1 -----{}".format(user_exists))
             if not user_exists:
                 try:
                     # Save data to DB
@@ -44,7 +44,8 @@ class Register(views.APIView):
                         activation_code=random_code,
                         user_email=(passed_data["email"]).lower()
                     )
-                    value = Register.send_maisha_message((passed_data["email"]).lower(), passed_data["firstname"], random_code)
+                    value = Register.send_maisha_message(
+                        (passed_data["email"]).lower(), passed_data["firstname"], random_code)
                     if value == 200:
                         activation_data.save()
                     else:
@@ -242,30 +243,6 @@ class Login(views.APIView):
             }, status.HTTP_200_OK)
 
 
-def generate_access_token(user):
-
-    access_token_payload = {
-        'user_id': user.id,
-        'email': user.email,
-        'exp': datetime.datetime.utcnow() + datetime.timedelta(days=0, minutes=5),
-        'iat': datetime.datetime.utcnow(),
-    }
-    access_token = jwt.encode(access_token_payload, settings.SECRET_KEY, algorithm='HS256')
-    return access_token
-
-def generate_refresh_token(user):
-    refresh_token_payload = {
-        'user_id': user.id,
-        'email': user.email,
-        'exp': datetime.datetime.utcnow() + datetime.timedelta(days=7),
-        'iat': datetime.datetime.utcnow()
-    }
-    refresh_token = jwt.encode(
-        refresh_token_payload, settings.REFRESH_TOKEN_SECRET, algorithm='HS256')
-
-    return refresh_token
-
-
 class ResetPass(views.APIView):
 
     permission_classes = [AllowAny]
@@ -411,13 +388,11 @@ class DoctorVerify(views.APIView):
     def post(request):
         passed_data = request.data
         try:
-            print("------------------------passed_data---------------: {}".format(passed_data))
             # check for activation
             activate = DoctorsActivation.objects.filter(
                 user_email=(passed_data["email"]).lower().strip(),
                 activation_code=int(passed_data["activation_code"])
             )
-            print("------------------------Activate---------------: {}".format(activate))
             if activate.count() < 1:
                 return Response({
                     "status": "failed",
@@ -428,11 +403,13 @@ class DoctorVerify(views.APIView):
             else:
                 user = get_user_model()
                 passed_username = (passed_data["email"].strip()).lower()
-                user = user.objects.create_user(username=passed_username, password=passed_data["password"].strip())
-                user.first_name = passed_data["firstname"]
-                user.last_name = passed_data["lastname"]
-                user.email = (passed_data["email"]).lower().strip()
-
+                user = user.objects.create_user(
+                    username=passed_username,
+                    first_name=passed_data["firstname"],
+                    last_name=passed_data["lastname"],
+                    email=(passed_data["email"]).lower().strip(),
+                    password=passed_data["password"].strip()
+                )
                 user.save()
                 return Response({
                     "status": "success",
@@ -466,7 +443,7 @@ class DoctorVerify(views.APIView):
                     "To": [
                         {
                             "Email": email,
-                            "Name": ""
+                            "Name": name
                         }
                     ],
                     "Subject": subject,
@@ -476,96 +453,3 @@ class DoctorVerify(views.APIView):
         }
         result = mailjet.send.create(data=data)
         return result.status_code
-
-
-class EmailTemplates:
-
-    @staticmethod
-    def verify_email(name, code, password):
-        return """
-        <!DOCTYPE html>
-            <html lang="en">
-                <body style="text-align:center;">
-                    <br/>
-                    <img alt="Image" border="0" src="https://res.cloudinary.com/dolwj4vkq/image/upload/v1621418365/HelloAlfie/ic_launcher.png" title="Image" width="300"/>
-                    <br/>
-                    <br/>
-                    <div style="color:#ff7463;font-family:'Montserrat', 'Trebuchet MS', 'Lucida Grande', 'Lucida Sans Unicode', 'Lucida Sans', Tahoma, sans-serif;line-height:1.2; padding:0;">
-                        <div style="font-size: 12px; line-height: 1.2; font-family: 'Lucida Sans Unicode', 'Lucida Sans', Tahoma, sans-serif; color: #ff7463; mso-line-height-alt: 14px;">
-                            <p style="font-size: 18px; line-height: 1.2; text-align: center; mso-line-height-alt: 22px; margin: 0;"><span style="font-size: 18px;"><strong><span style="font-size: 18px;"> Hello {}</span></strong></span></p>
-                        </div>
-                    </div>
-                    <div style="color:#555555;font-family: 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Geneva, Verdana, sans-serif;line-height:1.2; padding:10px;">
-                        <div style="font-family: 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Geneva, Verdana, sans-serif; font-size: 12px; line-height: 1.2; color: #555555; mso-line-height-alt: 14px;">
-                            <p style="font-size: 17px; line-height: 1.2; mso-line-height-alt: 17px; margin: 0; font-family: Verdana, sans-serif;"> Your path to mental wellness starts here.</p>
-                            <br/>
-                            <p style="font-size: 14px; line-height: 1.2; mso-line-height-alt: 17px; margin: 0; font-family: Verdana, sans-serif;"> We are glad to have you on board. Thank you for joining us on this journey in making the world a better place <br/> through sharing, building and nurturing a healthy space for resolution of mental issues</p>
-                            <br/>
-                            <p style="font-size: 14px; line-height: 1.2; mso-line-height-alt: 17px; margin: 0; font-family: Verdana, sans-serif;"> Your registration has been verified</p>
-                            <br/>
-                            <p style="font-size: 14px; line-height: 1.2; mso-line-height-alt: 17px; margin: 0; font-family: Verdana, sans-serif;"> Your activation code is <strong>{}</strong>. <br/> Your one time password is <strong>{}</strong> <br/>Please update once logged in <br/><br/> Thank you </p>
-                            <br/>
-                            <br/>
-                        </div>
-                    </div>
-                </body>
-            </html>
-        """.format(name, code, password)
-
-    @staticmethod
-    def maisha_register_email(name, code):
-        return """
-         <!DOCTYPE html>
-            <html lang="en">
-                <body style="text-align:center;">
-                    <br/>
-                    <img alt="Image" border="0" src="https://res.cloudinary.com/dolwj4vkq/image/upload/v1631524225/RFH/EMAIL/patient.png" title="Image" width="200"/>
-                    <br/>
-                    <br/>
-                    <div style="color:#008080;font-family:'Montserrat', 'Trebuchet MS', 'Lucida Grande', 'Lucida Sans Unicode', 'Lucida Sans', Tahoma, sans-serif;line-height:1.2; padding:0;">
-                        <div style="font-size: 12px; line-height: 1.2; font-family: 'Lucida Sans Unicode', 'Lucida Sans', Tahoma, sans-serif; color: #008080; mso-line-height-alt: 14px;">
-                            <p style="font-size: 18px; line-height: 1.2; text-align: center; mso-line-height-alt: 22px; margin: 0;"><span style="font-size: 18px;"><strong><span style="font-size: 18px;"> Hello {}</span></strong></span></p>
-                        </div>
-                    </div>
-                    <div style="color:#555555;font-family: 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Geneva, Verdana, sans-serif;line-height:1.2; padding:10px;">
-                        <div style="font-family: 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Geneva, Verdana, sans-serif; font-size: 12px; line-height: 1.2; color: #555555; mso-line-height-alt: 14px;">
-                            <p style="font-size: 17px; line-height: 1.2; mso-line-height-alt: 17px; margin: 0; font-family: Verdana, sans-serif;"> Welcome</p>
-                            <br/>
-                            <p style="font-size: 14px; line-height: 1.2; mso-line-height-alt: 17px; margin: 0; font-family: Verdana, sans-serif;"> We are glad to have you on board. Thank you for joining us on this journey in making the world a better place <br/> through sharing, building and nurturing a healthy space for everyone</p>
-                            <br/>
-                            <p style="font-size: 14px; line-height: 1.2; mso-line-height-alt: 17px; margin: 0; font-family: Verdana, sans-serif;"> Use activation code: <strong>{}</strong> to activate your account.</p>
-                            <br/>
-                            <p style="font-size: 14px; line-height: 1.2; mso-line-height-alt: 17px; margin: 0; font-family: Verdana, sans-serif;"> Welcome {}</p>
-                            <br/>
-                            <br/>
-                        </div>
-                    </div>
-                </body>
-            </html>
-        """.format(name, code, name)
-
-    @staticmethod
-    def maisha_reset_email(code):
-        return """
-            <!DOCTYPE html>
-            <html lang="en">
-                <body style="text-align:center;">
-                    <br/>
-                    <img alt="Image" border="0" src="https://res.cloudinary.com/dolwj4vkq/image/upload/v1631524225/RFH/EMAIL/patient.png" title="Image" width="200"/>
-                    <br/>
-                    <br/>
-                    <div style="color:#008080;font-family:'Montserrat', 'Trebuchet MS', 'Lucida Grande', 'Lucida Sans Unicode', 'Lucida Sans', Tahoma, sans-serif;line-height:1.2; padding:0;">
-                        <div style="font-size: 12px; line-height: 1.2; font-family: 'Lucida Sans Unicode', 'Lucida Sans', Tahoma, sans-serif; color: #ff7463; mso-line-height-alt: 14px;">
-                            <p style="font-size: 18px; line-height: 1.2; text-align: center; mso-line-height-alt: 22px; margin: 0;"><span style="font-size: 18px;"><strong><span style="font-size: 18px;"> Did you requested to have your password changed?</span></strong></span></p>
-                        </div>
-                    </div>
-                    <div style="color:#555555;font-family: 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Geneva, Verdana, sans-serif;line-height:1.2; padding:10px;">
-                        <div style="font-family: 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Geneva, Verdana, sans-serif; font-size: 12px; line-height: 1.2; color: #555555; mso-line-height-alt: 14px;">
-                            <p style="font-size: 14px; line-height: 1.2; mso-line-height-alt: 17px; margin: 0; font-family: Verdana, sans-serif;"> We received a request to reset your password. <br/>If you made the request, use the code <strong>{}</strong> to complete the process</p>
-                            <br/>
-                            <br/>
-                        </div>
-                    </div>
-                </body>
-            </html>
-        """.format(code)

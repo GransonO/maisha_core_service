@@ -1,6 +1,5 @@
 # Create your views here.
 import bugsnag
-import datetime
 import jwt
 import random
 import os
@@ -15,6 +14,7 @@ from rest_framework import views,  status
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny
 
+from .util import generate_access_token, generate_refresh_token, EmailTemplates
 from ..profiles.models import PatientProfile
 from .models import Reset, PatientActivation
 
@@ -134,6 +134,53 @@ class Register(views.APIView):
         return result.status_code
 
 
+class PatientVerify(views.APIView):
+
+    permission_classes = [AllowAny]
+
+    @staticmethod
+    def post(request):
+        passed_data = request.data
+        try:
+            # check for activation
+            activate = PatientActivation.objects.filter(
+                user_email=(passed_data["email"]).lower().strip(),
+                activation_code=int(passed_data["activation_code"])
+            )
+            if activate.count() < 1:
+                return Response({
+                    "status": "failed",
+                    "code": 0,
+                    "message": "verification failed, wrong details passed"
+                }, status.HTTP_200_OK)
+
+            else:
+                user = get_user_model()
+                passed_username = (passed_data["email"]).lower().strip()
+                user = user.objects.create_user(
+                    username=passed_username,
+                    first_name=passed_data["firstname"],
+                    last_name=passed_data["lastname"],
+                    email=passed_data["email"].lower().strip(),
+                    password=passed_data["password"].strip()
+                )
+
+                user.save()
+                return Response({
+                    "status": "success",
+                    "code": 0,
+                    "message": "User account activated"
+                }, status.HTTP_200_OK)
+
+        except Exception as e:
+            print("------------------------ {}".format(e))
+            return Response({
+                "status": "failed",
+                "code": 0,
+                "message": "User account NOT activated"
+            }, status.HTTP_200_OK)
+
+
 class Login(views.APIView):
     """
         Login, Update
@@ -143,7 +190,7 @@ class Login(views.APIView):
     @staticmethod
     def get(request):
         """ Generate the access token from refresh token"""
-        User = get_user_model()
+        user = get_user_model()
         refresh_token = request.COOKIES.get('refreshtoken')
         if refresh_token is None:
             raise exceptions.AuthenticationFailed(
@@ -155,14 +202,14 @@ class Login(views.APIView):
             raise exceptions.AuthenticationFailed(
                 'expired refresh token, please login again.')
 
-        user = User.objects.filter(id=payload.get('user_id')).first()
-        if user is None:
+        entity = user.objects.filter(id=payload.get('user_id')).first()
+        if entity is None:
             raise exceptions.AuthenticationFailed('User not found')
 
-        if not user.is_active:
+        if not entity.is_active:
             raise exceptions.AuthenticationFailed('user is inactive')
 
-        access_token = generate_access_token(user)
+        access_token = generate_access_token(entity)
         return Response({'access_token': access_token})
 
     @staticmethod
@@ -172,31 +219,28 @@ class Login(views.APIView):
         response = Response()
         try:
 
-            User = get_user_model()
+            user = get_user_model()
             username = (passed_data["email"]).lower().strip()
             password = passed_data["password"]
             if (username is None) or (password is None):
                 raise exceptions.AuthenticationFailed(
                     'username and password required')
 
-            passed_user = User.objects.filter(username=username)
+            passed_user = user.objects.filter(username=username)
+
+            response.data = {
+                "status": "failed",
+                "message": "Could not authenticate user",
+                "code": 1
+            }
             if passed_user.exists():
-                user = User.objects.filter(username=username).first()
-                profile = PatientProfile.objects.filter(email=(passed_data["email"]).lower().strip())
-                if user is None:
-                    raise exceptions.AuthenticationFailed('user not found')
                 le_user = authenticate(username=username, password=password)
                 if le_user is None:
-                    response.data = {
-                        "status": "failed",
-                        "message": "Could not authenticate user",
-                        "code": 1
-                    }
-
                     return response
 
-                serialized_user = UserSerializer(user).data
+                profile = PatientProfile.objects.filter(email=(passed_data["email"]).lower().strip())
                 serialized_profile = PatientsProfileSerializer(profile.first()).data
+                serialized_user = UserSerializer(user).data
 
                 # Update Patients FCM
                 profile.update(fcm=passed_data["fcm"])
@@ -219,8 +263,8 @@ class Login(views.APIView):
             else:
                 return Response({
                     "status": "failed",
-                    "message": "Login failed, user does not exist",
-                    "code": 0  # user added to db
+                    "message": "Login failed, could not find user",
+                    "code": 0
                 }, status.HTTP_200_OK)
 
         except Exception as e:
@@ -228,33 +272,8 @@ class Login(views.APIView):
             return Response({
                 "status": "failed",
                 "message": "Login failed",
-                "code": 2  # Login error
+                "code": 2
             }, status.HTTP_200_OK)
-
-
-def generate_access_token(user):
-
-    access_token_payload = {
-        'user_id': user.id,
-        'email': user.email,
-        'exp': datetime.datetime.utcnow() + datetime.timedelta(days=0, minutes=5),
-        'iat': datetime.datetime.utcnow(),
-    }
-    access_token = jwt.encode(access_token_payload, settings.SECRET_KEY, algorithm='HS256')
-    return access_token
-
-
-def generate_refresh_token(user):
-    refresh_token_payload = {
-        'user_id': user.id,
-        'email': user.email,
-        'exp': datetime.datetime.utcnow() + datetime.timedelta(days=7),
-        'iat': datetime.datetime.utcnow()
-    }
-    refresh_token = jwt.encode(
-        refresh_token_payload, settings.REFRESH_TOKEN_SECRET, algorithm='HS256')
-
-    return refresh_token
 
 
 class ResetPass(views.APIView):
@@ -398,110 +417,3 @@ class ResetPass(views.APIView):
         }
         result = mailjet.send.create(data=data)
         return result.status_code
-
-
-class EmailTemplates:
-
-    @staticmethod
-    def maisha_register_email(name, code):
-        return """
-         <!DOCTYPE html>
-            <html lang="en">
-                <body style="text-align:center;">
-                    <br/>
-                    <img alt="Image" border="0" src="https://res.cloudinary.com/dolwj4vkq/image/upload/v1631524225/RFH/EMAIL/patient.png" title="Image" width="200"/>
-                    <br/>
-                    <br/>
-                    <div style="color:#008080;font-family:'Montserrat', 'Trebuchet MS', 'Lucida Grande', 'Lucida Sans Unicode', 'Lucida Sans', Tahoma, sans-serif;line-height:1.2; padding:0;">
-                        <div style="font-size: 12px; line-height: 1.2; font-family: 'Lucida Sans Unicode', 'Lucida Sans', Tahoma, sans-serif; color: #008080; mso-line-height-alt: 14px;">
-                            <p style="font-size: 18px; line-height: 1.2; text-align: center; mso-line-height-alt: 22px; margin: 0;"><span style="font-size: 18px;"><strong><span style="font-size: 18px;"> Hello {}</span></strong></span></p>
-                        </div>
-                    </div>
-                    <div style="color:#555555;font-family: 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Geneva, Verdana, sans-serif;line-height:1.2; padding:10px;">
-                        <div style="font-family: 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Geneva, Verdana, sans-serif; font-size: 12px; line-height: 1.2; color: #555555; mso-line-height-alt: 14px;">
-                            <p style="font-size: 17px; line-height: 1.2; mso-line-height-alt: 17px; margin: 0; font-family: Verdana, sans-serif;"> Welcome</p>
-                            <br/>
-                            <p style="font-size: 14px; line-height: 1.2; mso-line-height-alt: 17px; margin: 0; font-family: Verdana, sans-serif;"> We are glad to have you on board. Thank you for joining us on this journey in making the world a better place <br/> through sharing, building and nurturing a healthy space for resolution of mental issues</p>
-                            <br/>
-                            <p style="font-size: 14px; line-height: 1.2; mso-line-height-alt: 17px; margin: 0; font-family: Verdana, sans-serif;"> Use activation code: <strong>{}</strong> to activate your account.</p>
-                            <br/>
-                            <p style="font-size: 14px; line-height: 1.2; mso-line-height-alt: 17px; margin: 0; font-family: Verdana, sans-serif;"> Welcome {}</p>
-                            <br/>
-                            <br/>
-                        </div>
-                    </div>
-                </body>
-            </html>
-        """.format(name, code, name)
-
-    @staticmethod
-    def maisha_reset_email(code):
-        return """
-            <!DOCTYPE html>
-            <html lang="en">
-                <body style="text-align:center;">
-                    <br/>
-                    <img alt="Image" border="0" src="https://res.cloudinary.com/dolwj4vkq/image/upload/v1631524225/RFH/EMAIL/patient.png" title="Image" width="200"/>
-                    <br/>
-                    <br/>
-                    <div style="color:#008080;font-family:'Montserrat', 'Trebuchet MS', 'Lucida Grande', 'Lucida Sans Unicode', 'Lucida Sans', Tahoma, sans-serif;line-height:1.2; padding:0;">
-                        <div style="font-size: 12px; line-height: 1.2; font-family: 'Lucida Sans Unicode', 'Lucida Sans', Tahoma, sans-serif; color: #008080; mso-line-height-alt: 14px;">
-                            <p style="font-size: 18px; line-height: 1.2; text-align: center; mso-line-height-alt: 22px; margin: 0;"><span style="font-size: 18px;"><strong><span style="font-size: 18px;"> Did you requested to have your password changed?</span></strong></span></p>
-                        </div>
-                    </div>
-                    <div style="color:#555555;font-family: 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Geneva, Verdana, sans-serif;line-height:1.2; padding:10px;">
-                        <div style="font-family: 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Geneva, Verdana, sans-serif; font-size: 12px; line-height: 1.2; color: #555555; mso-line-height-alt: 14px;">
-                            <p style="font-size: 14px; line-height: 1.2; mso-line-height-alt: 17px; margin: 0; font-family: Verdana, sans-serif;"> We received a request to reset your password. <br/>If you made the request, use the code <strong>{}</strong> to complete the process</p>
-                            <br/>
-                            <br/>
-                        </div>
-                    </div>
-                </body>
-            </html>
-        """.format(code)
-
-
-class PatientVerify(views.APIView):
-
-    permission_classes = [AllowAny]
-
-    @staticmethod
-    def post(request):
-        passed_data = request.data
-        try:
-            print("------------------------passed_data---------------: {}".format(passed_data))
-            # check for activation
-            activate = PatientActivation.objects.filter(
-                user_email=(passed_data["email"]).lower().strip(),
-                activation_code=int(passed_data["activation_code"])
-            )
-            print("------------------------Activate---------------: {}".format(activate))
-            if activate.count() < 1:
-                return Response({
-                    "status": "failed",
-                    "code": 0,
-                    "message": "verification failed, wrong activation code passed"
-                }, status.HTTP_200_OK)
-
-            else:
-                user = get_user_model()
-                passed_username = (passed_data["email"]).lower().strip()
-                user = user.objects.create_user(username=passed_username, password=passed_data["password"].strip())
-                user.first_name = passed_data["firstname"]
-                user.last_name = passed_data["lastname"]
-                user.email = (passed_data["email"]).lower().strip()
-
-                user.save()
-                return Response({
-                    "status": "success",
-                    "code": 0,
-                    "message": "User account activated"
-                }, status.HTTP_200_OK)
-
-        except Exception as e:
-            print("------------------------ {}".format(e))
-            return Response({
-                "status": "failed",
-                "code": 0,
-                "message": "User account NOT activated"
-            }, status.HTTP_200_OK)
