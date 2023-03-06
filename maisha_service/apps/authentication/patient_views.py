@@ -219,14 +219,14 @@ class Login(views.APIView):
         response = Response()
         try:
 
-            user = get_user_model()
+            user_obj = get_user_model()
             username = (passed_data["email"]).lower().strip()
             password = passed_data["password"]
             if (username is None) or (password is None):
                 raise exceptions.AuthenticationFailed(
                     'username and password required')
 
-            passed_user = user.objects.filter(username=username)
+            passed_user = user_obj.objects.filter(username=username)
 
             response.data = {
                 "status": "failed",
@@ -234,6 +234,7 @@ class Login(views.APIView):
                 "code": 1
             }
             if passed_user.exists():
+                user = passed_user.first()
                 le_user = authenticate(username=username, password=password)
                 if le_user is None:
                     return response
