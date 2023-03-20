@@ -10,7 +10,7 @@ from rest_framework.generics import ListAPIView
 
 from ..notifiers.FCM.fcm_requester import FcmCore
 from .models import DoctorsProfiles, Speciality, DoctorsAccount
-from .serializers import DoctorProfileSerializer, SpecialitySerializer, DoctorSpecialitySerializer
+from .serializers import DoctorProfileSerializer, SpecialitySerializer
 from ..authentication.models import DoctorsActivation
 
 
