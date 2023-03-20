@@ -1,4 +1,6 @@
 # Create your views here.
+from datetime import datetime
+
 import bugsnag
 import jwt
 import random
@@ -215,10 +217,15 @@ class Login(views.APIView):
     @staticmethod
     def post(request):
         """ Login """
+        print("Process 0 -------------- {}".format(datetime.now()))
         passed_data = request.data
         response = Response()
+        response.data = {
+            "status": "failed",
+            "message": "Could not authenticate user",
+            "code": 1
+        }
         try:
-
             user_obj = get_user_model()
             username = (passed_data["email"]).lower().strip()
             password = passed_data["password"]
@@ -228,23 +235,26 @@ class Login(views.APIView):
 
             passed_user = user_obj.objects.filter(username=username)
 
-            response.data = {
-                "status": "failed",
-                "message": "Could not authenticate user",
-                "code": 1
-            }
-            if passed_user.exists():
-                user = passed_user.first()
+            print("Process a -------------- {}".format(datetime.now()))
+
+            if len(passed_user) > 0:
+                user = passed_user[0]
+                print("Process b -------------- {}".format(datetime.now()))
                 le_user = authenticate(username=username, password=password)
+
                 if le_user is None:
                     return response
 
                 profile = PatientProfile.objects.filter(email=(passed_data["email"]).lower().strip())
-                serialized_profile = PatientsProfileSerializer(profile.first()).data
-                serialized_user = UserSerializer(user).data
 
+                print("Process c -------------- {}".format(datetime.now()))
+                serialized_profile = PatientsProfileSerializer(profile[0]).data
+
+                print("Process d -------------- {}".format(datetime.now()))
+                serialized_user = UserSerializer(user).data
                 # Update Patients FCM
                 profile.update(fcm=passed_data["fcm"])
+
                 access_token = generate_access_token(user)
                 refresh_token = generate_refresh_token(user)
 

@@ -26,7 +26,7 @@ class DoctorsProfiles(models.Model):
     nationality = models.CharField(max_length=250, null=True)
     profile_image = models.CharField(
         max_length=1250,
-        default="https://res.cloudinary.com/dolwj4vkq/image/upload/v1621418365/HelloAlfie/ic_launcher.png"
+        default="https://res.cloudinary.com/dolwj4vkq/image/upload/v1677153856/Maisha/resources/user.jpg"
     )
     about = models.CharField(max_length=2250, null=True)
 

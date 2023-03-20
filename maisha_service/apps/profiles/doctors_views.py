@@ -10,7 +10,7 @@ from rest_framework.generics import ListAPIView
 
 from ..notifiers.FCM.fcm_requester import FcmCore
 from .models import DoctorsProfiles, Speciality, DoctorsAccount
-from .serializers import DoctorProfileSerializer, SpecialitySerializer
+from .serializers import DoctorProfileSerializer, SpecialitySerializer, DoctorSpecialitySerializer
 from ..authentication.models import DoctorsActivation
 
 
@@ -147,7 +147,8 @@ class DoctorValidation(views.APIView):
 
             if passed_data["status"] == "1":
                 message_body = "Hello {}, your account has been verified. " \
-                               "Login to receive calls. Thank you for registering with us".format(doctor_profile["fullname"])
+                               "Thank you for registering with us."\
+                               "Login to receive calls. ".format(doctor_profile["fullname"])
             else:
                 message_body = "Hello {}, your account has been deactivated. " \
                                "Contact support for more information".format(doctor_profile["fullname"])
@@ -163,7 +164,6 @@ class DoctorValidation(views.APIView):
                 }, status.HTTP_200_OK
             )
         except Exception as e:
-            print("-------> {}".format(e))
             bugsnag.notify(
                 Exception('Doctor active update: {}'.format(e))
             )
@@ -278,9 +278,8 @@ class SpecialitySearch(views.APIView):
     def post(request):
         passed_data = request.data
 
-        speciality_name = Q(speciality_name__icontains=passed_data["query"])
+        speciality_name = Q(speciality__icontains=passed_data["query"])
         speciality_description = Q(speciality_description__icontains=passed_data["query"])
 
-        doctors = Speciality.objects.filter(speciality_name | speciality_description).values()
-
+        doctors = DoctorsProfiles.objects.filter(speciality_name | speciality_description).values()
         return Response(list(doctors), status.HTTP_200_OK)
