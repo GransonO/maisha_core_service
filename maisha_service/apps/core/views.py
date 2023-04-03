@@ -7,6 +7,8 @@ from dotenv import load_dotenv
 from django.db.models import Q
 from django.utils import timezone
 
+from datetime import datetime
+
 from .agora.RtcTokenBuilder import RtcTokenBuilder, Role_Subscriber
 from rest_framework import views, generics, status
 from rest_framework.response import Response
@@ -30,60 +32,71 @@ class CoreRequest(views.APIView):
             speciality = passed_data["speciality"]
             gender = passed_data["gender"]
             patient_id = passed_data["patient_id"]
+            is_scheduled = passed_data["is_scheduled"]
 
             serializer = MaishaCoreSerializer(
                 data=passed_data, partial=True
             )
             serializer.is_valid(raise_exception=True)
             serializer.save(session_id=the_id)
-            # Notify Doctors
-            # 1. Doctor has to be online
-            is_online = Q(is_online__exact=True)
+            if is_scheduled:
+                # Notify Doctors
+                # 1. Doctor has to be online
+                is_online = Q(is_online__exact=True)
 
-            # 2. Speciality (Dentist, Dermatologist) Can be optional
-            doc_speciality = Q(speciality__exact="GENERAL")
-            if speciality != "":
-                doc_speciality = Q(speciality__exact=speciality)
+                # 2. Speciality (Dentist, Dermatologist) Can be optional
+                doc_speciality = Q(speciality__exact="GENERAL")
+                if speciality != "":
+                    doc_speciality = Q(speciality__exact=speciality)
 
-            # 3. Based on Preference Filter (Male or female)
-            doc_gender = Q()
-            if passed_data["gender"] != "":
-                doc_gender = Q(gender__exact=gender)
+                # 3. Based on Preference Filter (Male or female)
+                doc_gender = Q()
+                if passed_data["gender"] != "":
+                    doc_gender = Q(gender__exact=gender)
 
-            print("------> is_online: {}, doc_speciality: {}, doc_gender: {}".format(
-                is_online, doc_speciality, doc_gender))
-            # Get the filtered doctors
-            doctors = DoctorsProfiles.objects.filter(is_online & doc_speciality).values()
+                print("------> is_online: {}, doc_speciality: {}, doc_gender: {}".format(
+                    is_online, doc_speciality, doc_gender))
+                # Get the filtered doctors
+                doctors = DoctorsProfiles.objects.filter(is_online & doc_speciality).values()
 
-            patient = PatientProfile.objects.get(user_id=patient_id)
-            patient_profile = PatientsProfileSerializer(patient).data
-            # 4. Based on proximity
-            # Calculate linear distance from doctor to patient (Needs faster computation)
-            # if passed_data["proximity"] != 0:  # Calculate closest online doctors
-            #     doc_proximity = Q(speciality__exact=True)
-            # doctors_profiles = DoctorProfileSerializer(doctor).data.values()
+                patient = PatientProfile.objects.get(user_id=patient_id)
+                patient_profile = PatientsProfileSerializer(patient).data
+                # 4. Based on proximity
+                # Calculate linear distance from doctor to patient (Needs faster computation)
+                # if passed_data["proximity"] != 0:  # Calculate closest online doctors
+                #     doc_proximity = Q(speciality__exact=True)
+                # doctors_profiles = DoctorProfileSerializer(doctor).data.values()
 
-            # *** Move this section to background
-            # send FCM TO ALL SUBSCRIBERS
+                # *** Move this section to background
+                # send FCM TO ALL SUBSCRIBERS
 
-            # FcmCore.doctor_core_notice(
-            #     all_tokens=fcm_tokens,
-            #     message="Maisha Doctor Request",
-            #     user_id=passed_data["patient_id"],
-            #     session_id=str(the_id),
-            #     type=passed_data["type"]
-            # )
-            # *** Move this section to background
+                # FcmCore.doctor_core_notice(
+                #     all_tokens=fcm_tokens,
+                #     message="Maisha Doctor Request",
+                #     user_id=passed_data["patient_id"],
+                #     session_id=str(the_id),
+                #     type=passed_data["type"]
+                # )
+                # *** Move this section to background
 
-            return Response(
-                {
-                    "success": True,
-                    "patient_fcm": patient_profile["fcm"],
-                    "session_id": str(the_id),
-                    "doctors": list(doctors),
-                    "message": "Posted successfully"
-                }, status.HTTP_200_OK
-            )
+                return Response(
+                    {
+                        "success": True,
+                        "patient_fcm": patient_profile["fcm"],
+                        "session_id": str(the_id),
+                        "doctors": list(doctors),
+                        "message": "Posted successfully"
+                    }, status.HTTP_200_OK
+                )
+            else:
+                return Response(
+                    {
+                        "success": True,
+                        "session_id": str(the_id),
+                        "message": "Posted successfully"
+                    }, status.HTTP_200_OK
+                )
+
         except Exception as E:
             print("----------------Exception---------------- {}".format(E))
             bugsnag.notify(
