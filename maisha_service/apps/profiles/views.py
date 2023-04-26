@@ -2,14 +2,19 @@ from django.contrib.postgres.search import SearchQuery, SearchVector, SearchRank
 import uuid
 
 import bugsnag
-from rest_framework import views,  status
+from django.db.models import Q
+from rest_framework import views, status
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny
 from rest_framework.generics import ListAPIView
-from .models import (PatientProfile, Allergies as AllergyDB, RecurrentIssues, Dependants, Notifiers, PatientsAccount)
-from .serializers import (PatientsProfileSerializer, AllergiesSerializer,
-                          RecurrentIssuesSerializer, NotifierSerializer, DependantsSerializer)
-from ..authentication.models import PatientActivation
+
+from maisha_service.apps.notifiers.EMAILS.profile_email import ProfileEmail
+from ..notifiers.FCM.fcm_requester import FcmCore
+from .models import DoctorsProfiles, Speciality, DoctorsAccount, PatientsAccount, PatientProfile, RecurrentIssues, \
+    Dependants, Notifiers
+from .serializers import DoctorProfileSerializer, SpecialitySerializer, PatientsProfileSerializer, AllergiesSerializer, \
+    RecurrentIssuesSerializer, DependantsSerializer, NotifierSerializer
+from ..authentication.models import UserActivation
 
 
 class Profiles(views.APIView):
@@ -22,25 +27,44 @@ class Profiles(views.APIView):
     def post(request):
         """ Add Profiles to DB """
         passed_data = request.data
-        print("The passed data is {}".format(passed_data))
         try:
-            # Save data to DB
-            user_reg_id = uuid.uuid1()
-            serializer = PatientsProfileSerializer(data=passed_data, partial=True)
-            serializer.is_valid(raise_exception=True)
-            serializer.save(user_id=user_reg_id, is_active=True)
-
-            # Create user account table details
-            accounts_details = PatientsAccount(
-                patient_id=user_reg_id
+            activate = UserActivation.objects.filter(
+                user_email=passed_data["email"].strip(),
+                user_phone=passed_data["phone_number"].strip(),
+                activation_code=int(passed_data["activation_code"])
             )
-            accounts_details.save()
+            if activate.count() < 1:
+                return Response({
+                    "status": "Failed",
+                    "code": 0,
+                    "message": "Update failed, wrong activation code passed"
+                }, status.HTTP_200_OK)
+            else:
+                # Save data to DB
+                user_reg_id = uuid.uuid1()
+                if passed_data["is_doctor"]:
+                    serializer = DoctorProfileSerializer(data=passed_data, partial=True)
+                    serializer.is_valid(raise_exception=True)
+                    serializer.save(user_id=user_reg_id, is_active=True)
+                    doc_account = DoctorsAccount(
+                        doctor_id=user_reg_id
+                    )
+                    doc_account.save()
+                else:
+                    serializer = PatientsProfileSerializer(data=passed_data, partial=True)
+                    serializer.is_valid(raise_exception=True)
+                    serializer.save(user_id=user_reg_id, is_active=True)
+                    accounts_details = PatientsAccount(
+                        patient_id=user_reg_id
+                    )
+                    accounts_details.save()
 
-            return Response({
-                "status": "success",
-                "user_id": user_reg_id,
-                "profile": serializer.data,
-                "code": 1
+                ProfileEmail.send_registration_email(passed_data["fullname"].strip(), passed_data["email"].strip())
+                return Response({
+                    "status": "success",
+                    "user_id": user_reg_id,
+                    "profile": serializer.data,
+                    "code": 1
                 }, status.HTTP_200_OK)
 
         except Exception as E:
@@ -49,37 +73,43 @@ class Profiles(views.APIView):
             )
             return Response({
                 "error": "{}".format(E),
-                "status": "failed",
-                "message": "Profile creation failed",
+                "status": "Profile creation failed",
                 "code": 0
-                }, status.HTTP_200_OK)
+            }, status.HTTP_200_OK)
 
     @staticmethod
     def put(request):
         passed_data = request.data
         # Check This later
         try:
-            participant = PatientProfile.objects.get(user_id=passed_data["patient_id"])
-            serializer = PatientsProfileSerializer(
-                participant, data=passed_data, partial=True)
-            serializer.is_valid(raise_exception=True)
-            serializer.save()
+            if passed_data["is_doctor"]:
+                participant = DoctorsProfiles.objects.get(user_id=passed_data["user_id"])
+                serializer = DoctorProfileSerializer(
+                    participant, data=passed_data, partial=True)
+                serializer.is_valid(raise_exception=True)
+                serializer.save()
+            else:
+                participant = PatientProfile.objects.get(user_id=passed_data["patient_id"])
+                serializer = PatientsProfileSerializer(
+                    participant, data=passed_data, partial=True)
+                serializer.is_valid(raise_exception=True)
+                serializer.save()
 
             return Response({
-                    "status": "success",
-                    "code": 1
-                    }, status.HTTP_200_OK)
+                "status": "success",
+                "code": 1
+            }, status.HTTP_200_OK)
 
         except Exception as E:
             print("Error: {}".format(E))
             bugsnag.notify(
-                Exception('Profile Put: {}'.format(E))
+                Exception('Profile Post: {}'.format(E))
             )
             return Response({
                 "error": "{}".format(E),
                 "status": "failed",
                 "code": 0
-                }, status.HTTP_200_OK)
+            }, status.HTTP_200_OK)
 
 
 class CodeVerify(views.APIView):
@@ -91,8 +121,9 @@ class CodeVerify(views.APIView):
         """ Add Profiles to DB """
         passed_data = request.data
         try:
-            activate = PatientActivation.objects.filter(
-                user_email=passed_data["email"],
+            activate = UserActivation.objects.filter(
+                user_email=passed_data["email"].strip(),
+                user_phone=passed_data["phone"],
                 activation_code=int(passed_data["activation_code"])
             )
             if activate.count() < 1:
@@ -105,7 +136,7 @@ class CodeVerify(views.APIView):
                 return Response({
                     "status": "success",
                     "code": 1
-                    }, status.HTTP_200_OK)
+                }, status.HTTP_200_OK)
 
         except Exception as E:
             print("Error: {}".format(E))
@@ -116,10 +147,65 @@ class CodeVerify(views.APIView):
                 "error": "{}".format(E),
                 "status": "failed",
                 "code": 0
-                }, status.HTTP_200_OK)
+            }, status.HTTP_200_OK)
 
 
-class ProfilesAllView(ListAPIView):
+class DoctorValidation(views.APIView):
+    """Activate or Deactivate doctor"""
+    permission_classes = [AllowAny]
+
+    @staticmethod
+    def post(request):
+        passed_data = request.data
+        try:
+            doctor = DoctorsProfiles.objects.get(user_id=passed_data["user_id"])
+            doctor_serializer = DoctorProfileSerializer(
+                doctor, passed_data, partial=True
+            )
+            doctor_serializer.is_valid()
+            doctor_serializer.save()
+
+            doctor_profile = DoctorProfileSerializer(doctor).data
+
+            if passed_data["status"] == "1":
+                message_body = "Hello {}, your account has been verified. " \
+                               "Thank you for registering with us." \
+                               "Login to receive calls. ".format(doctor_profile["fullname"])
+            else:
+                message_body = "Hello {}, your account has been deactivated. " \
+                               "Contact support for more information".format(doctor_profile["fullname"])
+
+            FcmCore.doctor_validation_notice(
+                all_tokens=[doctor_profile["fcm"]],
+                message=message_body,
+            )
+
+            return Response(
+                {
+                    "status": "success"
+                }, status.HTTP_200_OK
+            )
+        except Exception as e:
+            bugsnag.notify(
+                Exception('Doctor active update: {}'.format(e))
+            )
+            return Response({
+                "error": "{}".format(e),
+                "status": "failed",
+                "code": 0
+            }, status.HTTP_200_OK)
+
+
+class DoctorAllProfileView(ListAPIView):
+    """Get a user specific appointments"""
+    permission_classes = [AllowAny]
+    serializer_class = DoctorProfileSerializer
+
+    def get_queryset(self):
+        return DoctorsProfiles.objects.filter().order_by('createdAt')
+
+
+class PatientAllProfileView(ListAPIView):
     """Get a user specific appointments"""
     permission_classes = [AllowAny]
     serializer_class = PatientsProfileSerializer
@@ -128,7 +214,18 @@ class ProfilesAllView(ListAPIView):
         return PatientProfile.objects.filter().order_by('createdAt')
 
 
-class ProfileSpecificView(ListAPIView):
+class DoctorProfileSpecificView(ListAPIView):
+    """Get a user specific appointments"""
+    permission_classes = [AllowAny]
+    serializer_class = DoctorProfileSerializer
+
+    def get_queryset(self):
+        return DoctorsProfiles.objects.filter(
+            user_id=self.kwargs['userId']
+        ).order_by('createdAt')
+
+
+class PatientProfileSpecificView(ListAPIView):
     """Get a user specific appointments"""
     permission_classes = [AllowAny]
     serializer_class = PatientsProfileSerializer
@@ -139,7 +236,98 @@ class ProfileSpecificView(ListAPIView):
             ).order_by('createdAt')
 
 
-class Allergies(views.APIView):
+class SearchDoctor(views.APIView):
+    """Search for doctor using keys"""
+    permission_classes = [AllowAny]
+
+    @staticmethod
+    def post(request):
+        passed_data = request.data
+        vector = SearchVector('fullname', 'registered_hospital', 'speciality', 'email')
+        query = SearchQuery(passed_data["query"])
+        doctor = DoctorsProfiles.objects.annotate(
+            rank=SearchRank(vector, query)
+        ).filter(
+            rank__gte=0.001
+        ).order_by('-rank')
+        return Response(list(doctor.values()), status.HTTP_200_OK)
+
+
+class SpecialityView(views.APIView):
+    """Allergies"""
+    permission_classes = [AllowAny]
+
+    @staticmethod
+    def post(request):
+        """"Add new allergy"""
+        passed_data = request.data
+        try:
+            # Save data to DB
+            speciality_id = uuid.uuid1()
+            serializer = SpecialitySerializer(data=passed_data, partial=True)
+            serializer.is_valid(raise_exception=True)
+            serializer.save(entry_id=speciality_id, is_active=True)
+
+            return Response({
+                "status": "success",
+                "code": 1
+            }, status.HTTP_200_OK)
+
+        except Exception as E:
+            bugsnag.notify(
+                Exception('Speciality Post: {}'.format(E))
+            )
+            return Response({
+                "error": "{}".format(E),
+                "status": "failed",
+                "message": "Speciality creation failed",
+                "code": 0
+            }, status.HTTP_200_OK)
+
+    @staticmethod
+    def put(request):
+        # Remove from Allergies (Status inactive)
+        passed_data = request.data
+        try:
+            participant = Speciality.objects.get(entry_id=passed_data["entry_id"])
+            serializer = SpecialitySerializer(
+                participant, data=passed_data, partial=True)
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+
+            return Response({
+                "status": "success",
+                "code": 1
+            }, status.HTTP_200_OK)
+
+        except Exception as E:
+            print("Error: {}".format(E))
+            bugsnag.notify(
+                Exception('Profile Put Speciality: {}'.format(E))
+            )
+            return Response({
+                "error": "{}".format(E),
+                "status": "failed",
+                "code": 0
+            }, status.HTTP_200_OK)
+
+
+class SpecialitySearch(views.APIView):
+    """Search for doctor using keys"""
+    permission_classes = [AllowAny]
+
+    @staticmethod
+    def post(request):
+        passed_data = request.data
+
+        speciality_name = Q(speciality__icontains=passed_data["query"])
+        speciality_description = Q(speciality_description__icontains=passed_data["query"])
+
+        doctors = DoctorsProfiles.objects.filter(speciality_name | speciality_description).values()
+        return Response(list(doctors), status.HTTP_200_OK)
+
+
+class AllergiesView(views.APIView):
     """Allergies"""
     permission_classes = [AllowAny]
 
@@ -175,7 +363,7 @@ class Allergies(views.APIView):
         # Remove from Allergies (Status inactive)
         passed_data = request.data
         try:
-            participant = AllergyDB.objects.get(allergy_id=passed_data["allergy_id"])
+            participant = Allergies.objects.get(allergy_id=passed_data["allergy_id"])
             serializer = AllergiesSerializer(
                 participant, data=passed_data, partial=True)
             serializer.is_valid(raise_exception=True)
@@ -204,7 +392,7 @@ class AllergiesSpecificView(ListAPIView):
     serializer_class = AllergiesSerializer
 
     def get_queryset(self):
-        return AllergyDB.objects.filter(patient_id=self.kwargs["patient_id"], is_active=True).order_by('createdAt')
+        return Allergies.objects.filter(patient_id=self.kwargs["patient_id"], is_active=True).order_by('createdAt')
 
 
 class RecurrentIssuesView(views.APIView):

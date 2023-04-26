@@ -1,27 +1,25 @@
-# Create your views here.
+from rest_framework import exceptions
 from datetime import datetime
 
-import bugsnag
 import jwt
+import bugsnag
 import random
 import os
 
 from dotenv import load_dotenv
 from mailjet_rest import Client
-
-from rest_framework import exceptions
-from django.conf import settings
 from django.contrib.auth import get_user_model, authenticate
-from rest_framework import views,  status
+from rest_framework import views, status
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny
 
-from .util import generate_access_token, generate_refresh_token, EmailTemplates
-from ..profiles.models import PatientProfile
-from .models import Reset, PatientActivation
-
 from .serializers import UserSerializer
-from ..profiles.serializers import PatientsProfileSerializer
+from .util import generate_access_token, generate_refresh_token
+from ..notifiers.SMS.sms import SMS
+from .models import UserActivation, Reset
+from ..profiles.models import DoctorsProfiles, PatientProfile
+from ..profiles.serializers import DoctorProfileSerializer, PatientsProfileSerializer
+from ... import settings
 
 
 class Register(views.APIView):
@@ -37,23 +35,23 @@ class Register(views.APIView):
         try:
             # Check if it exists
             user_exists = Register.get_user_exist(passed_data)
-            print("--------------- 1 -----{}".format(user_exists))
             if not user_exists:
                 try:
                     # Save data to DB
                     random_code = random.randint(1000, 9999)
-                    activation_data = PatientActivation(
+                    activation_data = UserActivation(
                         activation_code=random_code,
-                        user_email=(passed_data["email"]).strip().lower()
+                        user_phone=(passed_data["phone"]).lower().strip(),
+                        user_email=(passed_data["email"]).lower()
                     )
-                    value = Register.send_maisha_message((passed_data["email"]).lower(), passed_data["firstname"], random_code)
-                    if value == 200:
+                    message = "Hello {} Your Maisha OTP is {}".format(passed_data["firstname"], random_code)
+                    status_code = SMS.send((passed_data["phone"]).lower(), message)
+                    if status_code == 101:
                         activation_data.save()
                     else:
-                        print("The value -----{}".format(value))
                         return Response({
                             "status": "failed",
-                            "message": "Email sending error",
+                            "message": "OTP sending error",
                             "code": 1
                         }, status.HTTP_200_OK)
 
@@ -70,10 +68,10 @@ class Register(views.APIView):
                         Exception('Activation error: {}'.format(E))
                     )
                     return Response({
-                            "status": "failed",
-                            "message": "Registration failed",
-                            "code": 0
-                            }, status.HTTP_200_OK)
+                        "status": "failed",
+                        "message": "Registration failed",
+                        "code": 0
+                    }, status.HTTP_200_OK)
 
             else:
                 return Response({
@@ -92,7 +90,7 @@ class Register(views.APIView):
                 "status": "failed error occurred",
                 "message": "Registration failed",
                 "code": 0
-                }, status.HTTP_200_OK)
+            }, status.HTTP_200_OK)
 
     @staticmethod
     def get_user_exist(passed_data):
@@ -101,43 +99,18 @@ class Register(views.APIView):
         """
         user = get_user_model()
         try:
-            user_exists = user.objects.filter(username=(passed_data["email"]).lower().strip()).exists()
+            user_exists = user.objects.filter(username=(passed_data["email"]).lower()).exists()
             return user_exists
 
         except Exception as e:
             print("------------------Exception: {}".format(e))
             return False
 
-    @staticmethod
-    def send_maisha_message(email, name, code):
-        load_dotenv()
-        api_key = os.environ['MJ_API_KEY_PUBLIC']
-        api_secret = os.environ['MJ_API_KEY_PRIVATE']
-        mailjet = Client(auth=(api_key, api_secret), version='v3.1')
-        data = {
-            'Messages': [
-                {
-                    "From": {
-                        "Email": "maisha@epitomesoftware.live",
-                        "Name": "Maisha"
-                    },
-                    "To": [
-                        {
-                            "Email": email,
-                            "Name": name
-                        }
-                    ],
-                    "Subject": 'Welcome {} to Maisha'.format(name),
-                    "HTMLPart":  EmailTemplates.maisha_register_email(name, code)
-                }
-            ]
-        }
-        result = mailjet.send.create(data=data)
-        return result.status_code
 
-
-class PatientVerify(views.APIView):
-
+class Verify(views.APIView):
+    """
+           Deal with Authentication
+       """
     permission_classes = [AllowAny]
 
     @staticmethod
@@ -145,28 +118,28 @@ class PatientVerify(views.APIView):
         passed_data = request.data
         try:
             # check for activation
-            activate = PatientActivation.objects.filter(
+            activate = UserActivation.objects.filter(
                 user_email=(passed_data["email"]).lower().strip(),
+                user_phone=(passed_data["phone"]).lower().strip(),
                 activation_code=int(passed_data["activation_code"])
             )
             if activate.count() < 1:
                 return Response({
                     "status": "failed",
                     "code": 0,
-                    "message": "verification failed, wrong details passed"
+                    "message": "verification failed, wrong activation code passed"
                 }, status.HTTP_200_OK)
 
             else:
                 user = get_user_model()
-                passed_username = (passed_data["email"]).lower().strip()
+                passed_username = (passed_data["email"].strip()).lower()
                 user = user.objects.create_user(
                     username=passed_username,
                     first_name=passed_data["firstname"],
                     last_name=passed_data["lastname"],
-                    email=passed_data["email"].lower().strip(),
+                    email=(passed_data["email"]).lower().strip(),
                     password=passed_data["password"].strip()
                 )
-
                 user.save()
                 return Response({
                     "status": "success",
@@ -192,7 +165,7 @@ class Login(views.APIView):
     @staticmethod
     def get(request):
         """ Generate the access token from refresh token"""
-        user = get_user_model()
+        User = get_user_model()
         refresh_token = request.COOKIES.get('refreshtoken')
         if refresh_token is None:
             raise exceptions.AuthenticationFailed(
@@ -204,20 +177,19 @@ class Login(views.APIView):
             raise exceptions.AuthenticationFailed(
                 'expired refresh token, please login again.')
 
-        entity = user.objects.filter(id=payload.get('user_id')).first()
-        if entity is None:
+        user = User.objects.filter(id=payload.get('user_id')).first()
+        if user is None:
             raise exceptions.AuthenticationFailed('User not found')
 
-        if not entity.is_active:
+        if not user.is_active:
             raise exceptions.AuthenticationFailed('user is inactive')
 
-        access_token = generate_access_token(entity)
+        access_token = generate_access_token(user)
         return Response({'access_token': access_token})
 
     @staticmethod
     def post(request):
         """ Login """
-        print("Process 0 -------------- {}".format(datetime.now()))
         passed_data = request.data
         response = Response()
         response.data = {
@@ -226,69 +198,79 @@ class Login(views.APIView):
             "code": 1
         }
         try:
-            user_obj = get_user_model()
+
+            User = get_user_model()
             username = (passed_data["email"]).lower().strip()
             password = passed_data["password"]
             if (username is None) or (password is None):
                 raise exceptions.AuthenticationFailed(
                     'username and password required')
+            passed_user = User.objects.filter(username=username)
+            if passed_user.exists():
+                user = passed_user.first()
+                if user is None:
+                    raise exceptions.AuthenticationFailed('user not found')
 
-            passed_user = user_obj.objects.filter(username=username)
-
-            print("Process a -------------- {}".format(datetime.now()))
-
-            if len(passed_user) > 0:
-                user = passed_user[0]
-                print("Process b -------------- {}".format(datetime.now()))
                 le_user = authenticate(username=username, password=password)
-
                 if le_user is None:
                     return response
 
-                profile = PatientProfile.objects.filter(email=(passed_data["email"]).lower().strip())
+                if passed_data["is_doctor"]:
+                    profile = DoctorsProfiles.objects.filter(email=(passed_data["email"]).lower())
+                    serialized_user = UserSerializer(user).data
+                    serialized_profile = DoctorProfileSerializer(profile.first()).data
+                else:
+                    profile = PatientProfile.objects.filter(email=(passed_data["email"]).lower().strip())
+                    serialized_profile = PatientsProfileSerializer(profile[0]).data
+                    serialized_user = UserSerializer(user).data
 
-                print("Process c -------------- {}".format(datetime.now()))
-                serialized_profile = PatientsProfileSerializer(profile[0]).data
-
-                print("Process d -------------- {}".format(datetime.now()))
-                serialized_user = UserSerializer(user).data
-                # Update Patients FCM
+                # Update Doctors FCM
                 profile.update(fcm=passed_data["fcm"])
-
                 access_token = generate_access_token(user)
                 refresh_token = generate_refresh_token(user)
 
                 response.set_cookie(key='refreshtoken', value=refresh_token, httponly=True)
-                response.data = {
-                    'access_token': access_token,
-                    'user': serialized_user,
-                    'profile': serialized_profile,
-                    "status": "success",
-                    "isRegistered": profile.count() > 0,
-                    "message": "Login success",
-                    "code": 1
-                }
 
-                return response
+                if profile[0].is_activated:
+                    response.data = {
+                        'access_token': access_token,
+                        'user': serialized_user,
+                        'profile': serialized_profile,
+                        "status": "success",
+                        "isRegistered": profile.count() > 0,
+                        "message": "Login success",
+                        "code": 1
+                    }
 
+                    return response
+                else:
+                    response.data = {
+                        'access_token': access_token,
+                        'user': serialized_user,
+                        'profile': serialized_profile,
+                        "status": "pending",
+                        "message": "Account not verified",
+                        "code": 1
+                    }
+
+                    return response
             else:
                 return Response({
                     "status": "failed",
-                    "message": "Login failed, could not find user",
-                    "code": 0
+                    "message": "Login failed, user does not exist",
+                    "code": 0  # user added to db
                 }, status.HTTP_200_OK)
 
         except Exception as e:
-            print("login error -------------- {}".format(e))
+            print("-----------------Error on login : {}".format(e))
             return Response({
                 "status": "failed",
-                "message": "Login failed",
-                "code": 2
+                "message": "Login Failed",
+                "code": 2  # Login error
             }, status.HTTP_200_OK)
 
 
 class ResetPass(views.APIView):
-
     permission_classes = [AllowAny]
 
     @staticmethod
@@ -299,8 +281,11 @@ class ResetPass(views.APIView):
         passed_data = request.data
         try:
             # Check if it exists
-            result = PatientProfile.objects.filter(email=(passed_data["email"]).lower().strip())
-            print("--------------------------------{}".format(result.count()))
+            if passed_data["isDoctor"]:
+                result = DoctorsProfiles.objects.filter(phone_number=(passed_data["phone"]).lower().strip())
+            else:
+                result = PatientProfile.objects.filter(phone_number=(passed_data["phone"]).lower().strip())
+
             if result.count() < 1:
                 return Response({
                     "status": "reset failed",
@@ -310,44 +295,48 @@ class ResetPass(views.APIView):
             else:
 
                 random_code = random.randint(1000, 9999)
+                message = "Your Maisha OTP is {}".format(random_code)
                 # check if reset before
                 result = Reset.objects.filter(user_email=(passed_data["email"]).lower().strip())
-                print("--------------------------------{}".format(result.count()))
+
                 if result.count() < 1:
                     # Reset object does not exist, add reset details
-                    add_reset = Reset(
-                        user_email=(passed_data["email"]).lower().strip(),
-                        reset_code=random_code,
-                    )
-                    add_reset.save()
-                    ResetPass.send_maisha_support_email((passed_data["email"]).lower(), random_code)
+                    status_code = SMS.send((passed_data["phone"]).lower(), message)
 
-                    return Response({
+                    if status_code == 101:
+                        add_reset = Reset(
+                            user_email=(passed_data["email"]).lower().strip(),
+                            reset_code=random_code,
+                        )
+                        add_reset.save()
+
+                        return Response({
                             "status": "reset success",
                             "code": 1,
                             "success": True
-                            }, status.HTTP_200_OK)
+                        }, status.HTTP_200_OK)
+
                 else:
                     # Update Reset
-                    value = ResetPass.send_maisha_support_email((passed_data["email"]).lower(), random_code)
+                    status_code = SMS.send((passed_data["phone"]).lower(), message)
 
-                    if value == 200:
+                    if status_code == 101:
                         Reset.objects.filter(
                             user_email=(passed_data["email"]).lower().strip()
                         ).update(
                             reset_code=random_code,
-                            )
+                        )
                         return Response({
-                                "status": "reset success",
-                                "code": 1,
-                                "success": True
-                                }, status.HTTP_200_OK)
+                            "status": "reset success",
+                            "code": 1,
+                            "success": True
+                        }, status.HTTP_200_OK)
                     else:
                         return Response({
-                                "status": "reset failed",
-                                "code": 0,
-                                "success": True
-                                }, status.HTTP_200_OK)
+                            "status": "reset failed",
+                            "code": 0,
+                            "success": True
+                        }, status.HTTP_200_OK)
 
         except Exception as E:
             print("Error: {}".format(E))
@@ -358,7 +347,7 @@ class ResetPass(views.APIView):
                 "status": "reset failed",
                 "code": 2,
                 "success": False
-                }, status.HTTP_200_OK)
+            }, status.HTTP_200_OK)
 
     @staticmethod
     def put(request):
@@ -399,32 +388,3 @@ class ResetPass(views.APIView):
                 }
 
             return response
-
-    @staticmethod
-    def send_maisha_support_email(email, code):
-        subject = 'Password reset'
-        message = EmailTemplates.maisha_reset_email(code)
-        load_dotenv()
-        api_key = os.environ['MJ_API_KEY_PUBLIC']
-        api_secret = os.environ['MJ_API_KEY_PRIVATE']
-        mailjet = Client(auth=(api_key, api_secret), version='v3.1')
-        data = {
-            'Messages': [
-                {
-                    "From": {
-                        "Email": "maisha@epitomesoftware.live",
-                        "Name": "Maisha"
-                    },
-                    "To": [
-                        {
-                            "Email": email,
-                            "Name": ""
-                        }
-                    ],
-                    "Subject": subject,
-                    "HTMLPart": message
-                }
-            ]
-        }
-        result = mailjet.send.create(data=data)
-        return result.status_code

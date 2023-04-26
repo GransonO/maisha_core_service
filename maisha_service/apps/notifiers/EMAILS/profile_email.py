@@ -1,3 +1,42 @@
+import os
+
+from dotenv import load_dotenv
+from mailjet_rest import Client
+
+
+class ProfileEmail:
+    @staticmethod
+    def send_registration_email(name, email):
+        subject = 'Account verification'
+        message = ProfileEmail.maisha_register_email(name)
+        load_dotenv()
+        api_key = os.environ['MJ_API_KEY_PUBLIC']
+        api_secret = os.environ['MJ_API_KEY_PRIVATE']
+        mailjet = Client(auth=(api_key, api_secret), version='v3.1')
+        data = {
+            'Messages': [
+                {
+                    "From": {
+                        "Email": "maisha@epitomesoftware.live",
+                        "Name": "Maisha Service"
+                    },
+                    "To": [
+                        {
+                            "Email": email,
+                            "Name": name
+                        }
+                    ],
+                    "Subject": subject,
+                    "HTMLPart": message
+                }
+            ]
+        }
+        result = mailjet.send.create(data=data)
+        return result.status_code
+
+    @staticmethod
+    def maisha_register_email(name):
+        return """
          <!DOCTYPE html>
             <html lang="en">
                 <body style="text-align:center;">
@@ -15,7 +54,7 @@
                             <br/>
                             <p style="font-size: 14px; line-height: 1.2; mso-line-height-alt: 17px; margin: 0; font-family: Verdana, sans-serif;"> We are glad to have you on board. Thank you for joining us on this journey in making the world a better place <br/> through sharing, building and nurturing a healthy space for everyone</p>
                             <br/>
-                            <p style="font-size: 14px; line-height: 1.2; mso-line-height-alt: 17px; margin: 0; font-family: Verdana, sans-serif;"> A new future awaits, and we are glad to take it with you</p>
+                            <p style="font-size: 14px; line-height: 1.2; mso-line-height-alt: 17px; margin: 0; font-family: Verdana, sans-serif;"> A new future awaits, and we are glad to take it with you.</p>
                             <br/>
                             <p style="font-size: 14px; line-height: 1.2; mso-line-height-alt: 17px; margin: 0; font-family: Verdana, sans-serif;"> Welcome {}</p>
                             <br/>
@@ -24,3 +63,4 @@
                     </div>
                 </body>
             </html>
+        """.format(name, name)

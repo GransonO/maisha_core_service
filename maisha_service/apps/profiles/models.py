@@ -35,7 +35,8 @@ class DoctorsProfiles(models.Model):
     speciality_description = models.TextField(null=True)
     practice_duration = models.IntegerField(verbose_name='in months', default=0)
     registered_hospital = models.TextField(null=True)
-    registration_code = models.CharField(max_length=50,  null=True)
+    registration_code = models.CharField(max_length=150,  null=True)
+    license_status = models.BooleanField(default=False)
 
     # Uploaded documents
     id_front = models.CharField(max_length=1250, null=True)

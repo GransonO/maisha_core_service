@@ -1,15 +1,12 @@
 from django.urls import path
-from .doctors_views import (
-     Profiles as DocProfiles,  ProfilesAllView as DocProfilesAllView,
-     ProfileSpecificView as DocProfileSpecificView, CodeVerify,
-     SearchDoctor, SpecialityView, SpecialitySearch, DoctorValidation
-     )
-from .patients_views import (
-     Profiles,  ProfilesAllView, Allergies, RecurrentIssuesView,
-     ProfileSpecificView, AllergiesSpecificView, RecurrentIssuesSpecificView,
-     RelativeSearch, DependantsView, DependantSpecificView, NotifierSpecificView,
-     NotifierView
-     )
+from .views import (
+    Profiles as DocProfiles, CodeVerify,
+    SearchDoctor, SpecialityView, SpecialitySearch, DoctorValidation, DoctorProfileSpecificView, DoctorAllProfileView,
+    Profiles, PatientAllProfileView, PatientProfileSpecificView, AllergiesView, AllergiesSpecificView,
+    RecurrentIssuesView, RecurrentIssuesSpecificView, DependantsView, DependantSpecificView, NotifierView,
+    NotifierSpecificView, RelativeSearch
+)
+
 
 urlpatterns = [
 
@@ -25,12 +22,12 @@ urlpatterns = [
          ),
 
     path('doc/<userId>',
-         DocProfileSpecificView.as_view(),
+         DoctorProfileSpecificView.as_view(),
          name="specific profiles"
          ),
 
     path('doc/all/',
-         DocProfilesAllView.as_view(),
+         DoctorAllProfileView.as_view(),
          name="all profiles"
          ),
 
@@ -61,17 +58,17 @@ urlpatterns = [
          ),
 
     path('<userId>',
-         ProfileSpecificView.as_view(),
+         PatientProfileSpecificView.as_view(),
          name="specific profiles"
          ),
 
     path('all/',
-         ProfilesAllView.as_view(),
+         PatientAllProfileView.as_view(),
          name="all profiles"
          ),
 
     path('allergies/',
-         Allergies.as_view(),
+         AllergiesView.as_view(),
          name="Allergies"
          ),
 
