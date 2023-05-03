@@ -91,7 +91,7 @@ class PatientProfile(models.Model):
     email = models.CharField(unique=True, max_length=250, default='non')
     activation_code = models.CharField(max_length=250, default='non')
     user_id = models.CharField(max_length=350, default='non', unique=True)
-    is_active = models.BooleanField(default=True)
+    is_activated = models.BooleanField(default=True)
 
     # Personal details
     gender = models.CharField(max_length=250, null=True)

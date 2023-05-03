@@ -217,8 +217,8 @@ class Login(views.APIView):
 
                 if passed_data["isDoctor"] == "true":
                     profile = DoctorsProfiles.objects.filter(email=(passed_data["email"]).lower())
-                    serialized_user = UserSerializer(user).data
                     serialized_profile = DoctorProfileSerializer(profile.first()).data
+                    serialized_user = UserSerializer(user).data
                 else:
                     profile = PatientProfile.objects.filter(email=(passed_data["email"]).lower().strip())
                     serialized_profile = PatientsProfileSerializer(profile[0]).data
