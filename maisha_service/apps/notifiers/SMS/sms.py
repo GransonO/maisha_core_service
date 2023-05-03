@@ -1,6 +1,7 @@
 # works with both python 2 and 3
 import os
 
+import bugsnag
 import africastalking
 from dotenv import load_dotenv
 
@@ -29,5 +30,8 @@ class SMS:
             return response["SMSMessageData"]["Recipients"][0]["statusCode"]
 
         except Exception as e:
+            bugsnag.notify(
+                Exception('SMS ERROR: {}'.format(e))
+            )
             print('Encountered an error while sending: %s' % str(e))
             return 404

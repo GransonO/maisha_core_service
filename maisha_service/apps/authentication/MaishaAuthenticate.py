@@ -281,10 +281,11 @@ class ResetPass(views.APIView):
         passed_data = request.data
         try:
             # Check if it exists
-            if passed_data["isDoctor"]:
+            if passed_data["isDoctor"] == "true":
                 result = DoctorsProfiles.objects.filter(phone_number=(passed_data["phone"]).lower().strip())
+
             else:
-                result = PatientProfile.objects.filter(phone_number=(passed_data["phone"]).lower().strip())
+                result = PatientProfile.objects.filter(phone_number=(passed_data["phone"]).strip())
 
             if result.count() < 1:
                 return Response({
@@ -295,9 +296,9 @@ class ResetPass(views.APIView):
             else:
 
                 random_code = random.randint(1000, 9999)
-                message = "Your Maisha OTP is {}".format(random_code)
+                message = "Your Maisha Reset code is {}".format(random_code)
                 # check if reset before
-                result = Reset.objects.filter(user_email=(passed_data["email"]).lower().strip())
+                result = Reset.objects.filter(user_email=(passed_data["phone"]).lower().strip())
 
                 if result.count() < 1:
                     # Reset object does not exist, add reset details
@@ -306,6 +307,7 @@ class ResetPass(views.APIView):
                     if status_code == 101:
                         add_reset = Reset(
                             user_email=(passed_data["email"]).lower().strip(),
+                            user_phone=(passed_data["phone"]).lower().strip(),
                             reset_code=random_code,
                         )
                         add_reset.save()
@@ -322,7 +324,7 @@ class ResetPass(views.APIView):
 
                     if status_code == 101:
                         Reset.objects.filter(
-                            user_email=(passed_data["email"]).lower().strip()
+                            user_phone=(passed_data["phone"]).lower().strip()
                         ).update(
                             reset_code=random_code,
                         )
@@ -355,12 +357,13 @@ class ResetPass(views.APIView):
         passed_data = request.data
 
         user = get_user_model()
-        username = (passed_data["email"]).lower().strip()
+        email = (passed_data["email"]).lower().strip()
+        user_phone = (passed_data["phone"]).lower().strip()
         password = passed_data["password"]
         reset_code = passed_data["code"]
         response = Response()
 
-        reset = Reset.objects.filter(user_email=username, reset_code=reset_code)
+        reset = Reset.objects.filter(user_phone=user_phone, reset_code=reset_code)
         if reset.count() < 1:
             response.data = {
                 "status": "Failed",
@@ -369,10 +372,10 @@ class ResetPass(views.APIView):
             }
             return response
         else:
-            passed_user = user.objects.filter(username=username)
+            passed_user = user.objects.filter(username=email)
             if passed_user.exists():
                 # Update user password
-                passed_user = user.objects.filter(username=username).first()
+                passed_user = user.objects.filter(username=email).first()
                 passed_user.set_password(password)
                 passed_user.save()
                 response.data = {

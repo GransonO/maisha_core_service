@@ -11,7 +11,7 @@ from rest_framework.generics import ListAPIView
 from maisha_service.apps.notifiers.EMAILS.profile_email import ProfileEmail
 from ..notifiers.FCM.fcm_requester import FcmCore
 from .models import DoctorsProfiles, Speciality, DoctorsAccount, PatientsAccount, PatientProfile, RecurrentIssues, \
-    Dependants, Notifiers
+    Dependants, Notifiers, Allergies
 from .serializers import DoctorProfileSerializer, SpecialitySerializer, PatientsProfileSerializer, AllergiesSerializer, \
     RecurrentIssuesSerializer, DependantsSerializer, NotifierSerializer
 from ..authentication.models import UserActivation
@@ -42,7 +42,7 @@ class Profiles(views.APIView):
             else:
                 # Save data to DB
                 user_reg_id = uuid.uuid1()
-                if passed_data["is_doctor"]:
+                if passed_data["isDoctor"] == "true":
                     serializer = DoctorProfileSerializer(data=passed_data, partial=True)
                     serializer.is_valid(raise_exception=True)
                     serializer.save(user_id=user_reg_id, is_active=True)
@@ -82,7 +82,7 @@ class Profiles(views.APIView):
         passed_data = request.data
         # Check This later
         try:
-            if passed_data["is_doctor"]:
+            if passed_data["isDoctor"] == "true":
                 participant = DoctorsProfiles.objects.get(user_id=passed_data["user_id"])
                 serializer = DoctorProfileSerializer(
                     participant, data=passed_data, partial=True)
