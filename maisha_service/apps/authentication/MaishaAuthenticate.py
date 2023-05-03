@@ -298,7 +298,7 @@ class ResetPass(views.APIView):
                 random_code = random.randint(1000, 9999)
                 message = "Your Maisha Reset code is {}".format(random_code)
                 # check if reset before
-                result = Reset.objects.filter(user_email=(passed_data["phone"]).lower().strip())
+                result = Reset.objects.filter(user_phone=(passed_data["phone"]).lower().strip())
 
                 if result.count() < 1:
                     # Reset object does not exist, add reset details
@@ -306,7 +306,6 @@ class ResetPass(views.APIView):
 
                     if status_code == 101:
                         add_reset = Reset(
-                            user_email=(passed_data["email"]).lower().strip(),
                             user_phone=(passed_data["phone"]).lower().strip(),
                             reset_code=random_code,
                         )

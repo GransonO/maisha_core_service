@@ -9,8 +9,8 @@ class User(AbstractUser):
 class Reset(models.Model):
     """Reset code flow"""
     reset_code = models.CharField(max_length=4)
-    user_email = models.CharField(unique=True, max_length=250, default='non')
-    user_phone = models.CharField(unique=True, max_length=250, default='non')
+    user_email = models.CharField(unique=True, max_length=250, null=True)
+    user_phone = models.CharField(unique=True, max_length=250)
 
     createdAt = models.DateTimeField(auto_now_add=True, null=True)
     updatedAt = models.DateTimeField(auto_now=True, null=True)
