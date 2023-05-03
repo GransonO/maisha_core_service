@@ -356,7 +356,6 @@ class ResetPass(views.APIView):
         passed_data = request.data
 
         user = get_user_model()
-        email = (passed_data["email"]).lower().strip()
         user_phone = (passed_data["phone"]).lower().strip()
         password = passed_data["password"]
         reset_code = passed_data["code"]
@@ -371,6 +370,15 @@ class ResetPass(views.APIView):
             }
             return response
         else:
+
+            if passed_data["isDoctor"] == "true":
+                profile = DoctorsProfiles.objects.filter(phone_number=user_phone)
+                serialized_profile = DoctorProfileSerializer(profile.first()).data
+            else:
+                profile = PatientProfile.objects.filter(phone_number=user_phone)
+                serialized_profile = PatientsProfileSerializer(profile[0]).data
+
+            email = serialized_profile["email"]
             passed_user = user.objects.filter(username=email)
             if passed_user.exists():
                 # Update user password
