@@ -45,22 +45,23 @@ class Register(views.APIView):
                         user_email=(passed_data["email"]).lower()
                     )
                     message = "Hello {} Your Maisha OTP is {}".format(passed_data["firstname"], random_code)
+                    is_saved = activation_data.save()
+
                     status_code = SMS.send((passed_data["phone"]).lower(), message)
                     if status_code == 101:
-                        activation_data.save()
+                        return Response({
+                            "status": "success",
+                            "message": "Registration success",
+                            "reg_code": random_code,
+                            "code": 1
+                        }, status.HTTP_200_OK)
+
                     else:
                         return Response({
                             "status": "failed",
                             "message": "OTP sending error",
                             "code": 1
                         }, status.HTTP_200_OK)
-
-                    return Response({
-                        "status": "success",
-                        "message": "Registration success",
-                        "reg_code": random_code,
-                        "code": 1
-                    }, status.HTTP_200_OK)
 
                 except Exception as E:
                     print("Activation error: {}".format(E))
