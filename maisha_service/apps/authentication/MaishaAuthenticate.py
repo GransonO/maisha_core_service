@@ -172,8 +172,12 @@ class Login(views.APIView):
             raise exceptions.AuthenticationFailed(
                 'Authentication credentials were not provided.')
         try:
+
+            load_dotenv()
+            refresh_token_secret = os.environ['REFRESH_TOKEN_SECRET']
             payload = jwt.decode(
-                refresh_token, settings.REFRESH_TOKEN_SECRET, algorithms=['HS256'])
+                refresh_token, refresh_token_secret, algorithms=['HS256'])
+
         except jwt.ExpiredSignatureError:
             raise exceptions.AuthenticationFailed(
                 'expired refresh token, please login again.')
@@ -225,7 +229,7 @@ class Login(views.APIView):
                     serialized_profile = PatientsProfileSerializer(profile[0]).data
                     serialized_user = UserSerializer(user).data
 
-                # Update Doctors FCM
+                # Update USERS FCM
                 profile.update(fcm=passed_data["fcm"])
                 access_token = generate_access_token(user)
                 refresh_token = generate_refresh_token(user)

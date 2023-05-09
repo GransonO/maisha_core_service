@@ -6,12 +6,12 @@ urlpatterns = [
 
     path("register",
          Register.as_view(),
-         name="Patients Register"
+         name="Register"
          ),
 
     path("login",
          Login.as_view(),
-         name="Patients Login"
+         name="Login"
          ),
 
     path("reset",

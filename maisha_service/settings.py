@@ -21,10 +21,6 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/3.2/howto/deployment/checklist/
 
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-92l%&s_qxg_e)_b)+-b(n4666uemwuz@fvot*5t7%2(-s2av88'
-REFRESH_TOKEN_SECRET = 'j436uwc5v2q^(p%s8xco0+$tzx)$2h_7*+o)hg6wvs4*2l*6x6c'
-
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
@@ -113,8 +109,8 @@ TEMPLATES = [
     },
 ]
 
-# WSGI_APPLICATION = 'maisha_service.wsgi.application'
-ASGI_APPLICATION = 'maisha_service.asgi.application'
+WSGI_APPLICATION = 'maisha_service.wsgi.application'
+# ASGI_APPLICATION = 'maisha_service.asgi.application'
 
 CORS_ORIGIN_ALLOW_ALL = True
 

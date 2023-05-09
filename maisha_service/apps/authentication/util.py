@@ -1,6 +1,8 @@
 import datetime
 import jwt
-from django.conf import settings
+import os
+
+from dotenv import load_dotenv
 
 
 def generate_access_token(user):
@@ -11,7 +13,9 @@ def generate_access_token(user):
         'exp': datetime.datetime.utcnow() + datetime.timedelta(days=0, minutes=5),
         'iat': datetime.datetime.utcnow(),
     }
-    access_token = jwt.encode(access_token_payload, settings.SECRET_KEY, algorithm='HS256')
+    load_dotenv()
+    token_secret = os.environ['SECRET_KEY']
+    access_token = jwt.encode(access_token_payload, token_secret, algorithm='HS256')
     return access_token
 
 
@@ -22,7 +26,10 @@ def generate_refresh_token(user):
         'exp': datetime.datetime.utcnow() + datetime.timedelta(days=7),
         'iat': datetime.datetime.utcnow()
     }
+
+    load_dotenv()
+    refresh_token_secret = os.environ['REFRESH_TOKEN_SECRET']
     refresh_token = jwt.encode(
-        refresh_token_payload, settings.REFRESH_TOKEN_SECRET, algorithm='HS256')
+        refresh_token_payload, refresh_token_secret, algorithm='HS256')
 
     return refresh_token
