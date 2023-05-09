@@ -253,6 +253,15 @@ class SearchDoctor(views.APIView):
         return Response(list(doctor.values()), status.HTTP_200_OK)
 
 
+class Specialities(ListAPIView):
+    """Get all specialities"""
+    permission_classes = [AllowAny]
+    serializer_class = SpecialitySerializer
+
+    def get_queryset(self):
+        return Speciality.objects.filter().order_by('createdAt')
+
+
 class SpecialityView(views.APIView):
     """Allergies"""
     permission_classes = [AllowAny]

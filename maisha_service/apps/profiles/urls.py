@@ -4,7 +4,7 @@ from .views import (
     SearchDoctor, SpecialityView, SpecialitySearch, DoctorValidation, DoctorProfileSpecificView, DoctorAllProfileView,
     Profiles, PatientAllProfileView, PatientProfileSpecificView, AllergiesView, AllergiesSpecificView,
     RecurrentIssuesView, RecurrentIssuesSpecificView, DependantsView, DependantSpecificView, NotifierView,
-    NotifierSpecificView, RelativeSearch
+    NotifierSpecificView, RelativeSearch, Specialities
 )
 
 
@@ -39,6 +39,11 @@ urlpatterns = [
     path('doc/speciality/',
          SpecialityView.as_view(),
          name="Doctor SpecialityView"
+         ),
+
+    path('doc/speciality/all/',
+         Specialities.as_view(),
+         name="Doctor All Specialities"
          ),
 
     path('doc/speciality/search/',
