@@ -254,10 +254,10 @@ class SearchDoctor(views.APIView):
 
 
 class Specialities(ListAPIView):
-    """Get all specialities"""
     permission_classes = [AllowAny]
     serializer_class = SpecialitySerializer
 
+    """Get all specialities"""
     def get_queryset(self):
         return Speciality.objects.filter().order_by('createdAt')
 
