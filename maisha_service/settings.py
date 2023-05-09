@@ -60,7 +60,7 @@ INSTALLED_APPS = [
     'maisha_service.apps.support',
     'maisha_service.apps.payments.mpesa',
     'maisha_service.apps.core',
-    # 'maisha_service.apps.ws_connect',
+    'maisha_service.apps.ws_connect',
 
 ]
 
@@ -109,8 +109,8 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = 'maisha_service.wsgi.application'
-# ASGI_APPLICATION = 'maisha_service.asgi.application'
+# WSGI_APPLICATION = 'maisha_service.wsgi.application'
+ASGI_APPLICATION = 'maisha_service.asgi.application'
 
 CORS_ORIGIN_ALLOW_ALL = True
 
