@@ -45,7 +45,7 @@ class Profiles(views.APIView):
                 if passed_data["isDoctor"] == "true":
                     serializer = DoctorProfileSerializer(data=passed_data, partial=True)
                     serializer.is_valid(raise_exception=True)
-                    serializer.save(user_id=user_reg_id, is_active=True)
+                    serializer.save(user_id=user_reg_id, is_activated=True)
                     doc_account = DoctorsAccount(
                         doctor_id=user_reg_id
                     )
@@ -53,7 +53,7 @@ class Profiles(views.APIView):
                 else:
                     serializer = PatientsProfileSerializer(data=passed_data, partial=True)
                     serializer.is_valid(raise_exception=True)
-                    serializer.save(user_id=user_reg_id, is_active=True)
+                    serializer.save(user_id=user_reg_id, is_activated=True)
                     accounts_details = PatientsAccount(
                         patient_id=user_reg_id
                     )
