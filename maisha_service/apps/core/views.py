@@ -39,7 +39,8 @@ class CoreRequest(views.APIView):
             )
             serializer.is_valid(raise_exception=True)
             serializer.save(session_id=the_id)
-            if is_scheduled:
+            if int(is_scheduled) == 1:
+
                 # Notify Doctors
                 # 1. Doctor has to be online
                 is_online = Q(is_online__exact=True)

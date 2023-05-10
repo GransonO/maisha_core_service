@@ -28,7 +28,7 @@ class MaishaCore(models.Model):
     # Patient stuff
     patient_rating = models.FloatField(default=0.0)
     is_completed = models.BooleanField(default=False)
-    is_scheduled = models.BooleanField(default=False)
+    is_scheduled = models.IntegerField(default=0)
 
     # Doctor stuff
     doctor_rating = models.FloatField(default=0.0)
