@@ -205,6 +205,15 @@ class DoctorAllProfileView(ListAPIView):
         return DoctorsProfiles.objects.filter().order_by('createdAt')
 
 
+class DoctorActiveProfiles(ListAPIView):
+    """Get a user specific appointments"""
+    permission_classes = [AllowAny]
+    serializer_class = DoctorProfileSerializer
+
+    def get_queryset(self):
+        return DoctorsProfiles.objects.filter(is_activated=True).order_by('createdAt')
+
+
 class PatientAllProfileView(ListAPIView):
     """Get a user specific appointments"""
     permission_classes = [AllowAny]
