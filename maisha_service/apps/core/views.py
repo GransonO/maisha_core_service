@@ -279,7 +279,7 @@ class OnGoingSession(views.APIView):
         try:
             session = MaishaCore.objects.filter(
                 patient_id=passed_data["patient_id"],
-                patient_session_status="ONGOING").values()
+                status="ACCEPTED").values()
             return Response(list(session), status.HTTP_200_OK)
 
         except Exception as E:
@@ -300,7 +300,7 @@ class OnGoingSession(views.APIView):
         try:
             session = MaishaCore.objects.filter(
                 doctor_id=passed_data["doctor_id"],
-                doctor_session_status="ONGOING").values()
+                status="ACCEPTED").values()
             return Response(list(session), status.HTTP_200_OK)
 
         except Exception as E:
