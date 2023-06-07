@@ -305,7 +305,7 @@ class OnGoingSession(views.APIView):
 class ScheduleSession(generics.ListAPIView):
     """Get a user specific appointments"""
     permission_classes = [AllowAny]
-    serializer_class = CoreScheduledSerializer
+    serializer_class = MaishaCoreSerializer
 
     def get_queryset(self):
         return MaishaCore.objects.filter(
