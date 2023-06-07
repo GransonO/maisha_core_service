@@ -1,3 +1,4 @@
+from datetime import datetime
 import uuid
 
 from django.db import models
@@ -118,3 +119,17 @@ class DoctorPatientCreditTransfer(models.Model):
         """ String representation of db object """
         return 'session_id : {} ,amount_transferred: {}'.format(
             self.session_id, self.amount_transferred)
+
+
+class ScheduledSessionsModel(models.Model):
+    session_id = models.CharField(max_length=350, default='non', unique=True)
+    session_date_time = models.DateTimeField(default=datetime.now)
+    doctor_accepted_rejected = models.CharField(max_length=350, default='non')
+
+    createdAt = models.DateTimeField(auto_now_add=True, null=True)
+    updatedAt = models.DateTimeField(auto_now=True, null=True)
+
+    def __str__(self):
+        """ String representation of db object """
+        return 'session_id : {} ,doctor_accepted_rejected: {}'.format(
+            self.session_id, self.doctor_accepted_rejected)

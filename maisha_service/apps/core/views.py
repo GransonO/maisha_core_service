@@ -13,7 +13,8 @@ from .agora.RtcTokenBuilder import RtcTokenBuilder, Role_Subscriber
 from rest_framework import views, generics, status
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny
-from .serializers import MaishaCoreSerializer, SessionBounceSerializer, CoreChatsSerializer, CoreComplaintsSerializer
+from .serializers import MaishaCoreSerializer, SessionBounceSerializer, CoreChatsSerializer, CoreComplaintsSerializer, \
+    ScheduledSessionsModelSerializer, CoreScheduledSerializer
 from .models import MaishaCore, SessionBounce, MaishaChats, CoreComplaints
 from ..profiles.models import PatientProfile, DoctorsProfiles, PatientsAccount, DoctorsAccount
 from ..profiles.serializers import PatientsProfileSerializer, PatientsAccountSerializer, DoctorsAccountSerializer
@@ -40,46 +41,26 @@ class CoreRequest(views.APIView):
             serializer.is_valid(raise_exception=True)
             serializer.save(session_id=the_id)
 
+            # 1. Speciality (Dentist, Dermatologist) Can be optional
+            doc_speciality = Q(speciality__exact="GENERAL")
+            if speciality != "":
+                doc_speciality = Q(speciality__exact=speciality)
+
+            # 2. Based on Preference Filter (Male or female)
+            doc_gender = Q()
+            if passed_data["gender"] != "":
+                doc_gender = Q(gender__exact=gender)
+
+            patient = PatientProfile.objects.get(user_id=patient_id)
+            patient_profile = PatientsProfileSerializer(patient).data
+
             if int(is_scheduled) == 0:  # Not Scheduled
 
                 # Notify Doctors
-                # 1. Doctor has to be online
+                # 3. Doctor has to be online
                 is_online = Q(is_online__exact=True)
-
-                # 2. Speciality (Dentist, Dermatologist) Can be optional
-                doc_speciality = Q(speciality__exact="GENERAL")
-                if speciality != "":
-                    doc_speciality = Q(speciality__exact=speciality)
-
-                # 3. Based on Preference Filter (Male or female)
-                doc_gender = Q()
-                if passed_data["gender"] != "":
-                    doc_gender = Q(gender__exact=gender)
-
-                print("------> is_online: {}, doc_speciality: {}, doc_gender: {}".format(
-                    is_online, doc_speciality, doc_gender))
                 # Get the filtered doctors
                 doctors = DoctorsProfiles.objects.filter(is_online & doc_speciality).values()
-
-                patient = PatientProfile.objects.get(user_id=patient_id)
-                patient_profile = PatientsProfileSerializer(patient).data
-                # 4. Based on proximity
-                # Calculate linear distance from doctor to patient (Needs faster computation)
-                # if passed_data["proximity"] != 0:  # Calculate closest online doctors
-                #     doc_proximity = Q(speciality__exact=True)
-                # doctors_profiles = DoctorProfileSerializer(doctor).data.values()
-
-                # *** Move this section to background
-                # send FCM TO ALL SUBSCRIBERS
-
-                # FcmCore.doctor_core_notice(
-                #     all_tokens=fcm_tokens,
-                #     message="Maisha Doctor Request",
-                #     user_id=passed_data["patient_id"],
-                #     session_id=str(the_id),
-                #     type=passed_data["type"]
-                # )
-                # *** Move this section to background
 
                 return Response(
                     {
@@ -91,6 +72,12 @@ class CoreRequest(views.APIView):
                     }, status.HTTP_200_OK
                 )
             else:
+                schedule_serializer = ScheduledSessionsModelSerializer(
+                    data=passed_data, partial=True
+                )
+                schedule_serializer.is_valid(raise_exception=True)
+                schedule_serializer.save(session_id=the_id)
+
                 return Response(
                     {
                         "success": True,
@@ -279,7 +266,8 @@ class OnGoingSession(views.APIView):
         try:
             session = MaishaCore.objects.filter(
                 patient_id=passed_data["patient_id"],
-                status="ACCEPTED").values()
+                status="ACCEPTED"
+            ).values()
             return Response(list(session), status.HTTP_200_OK)
 
         except Exception as E:
@@ -289,7 +277,7 @@ class OnGoingSession(views.APIView):
             )
             return Response(
                 {
-                    "message": "User has no ongoing session"
+                    "message": "error when fetching ongoing sessions"
                 }, status.HTTP_200_OK
             )
 
@@ -304,14 +292,26 @@ class OnGoingSession(views.APIView):
             return Response(list(session), status.HTTP_200_OK)
 
         except Exception as E:
-            print("----------------Exception---------------- {}".format(E))
             bugsnag.notify(
                 Exception('CoreRequest Post: {}'.format(E))
             )
             return Response(
                 {
-                    "message": "User has no ongoing session"
+                    "message": "error when fetching ongoing sessions"
                 }, status.HTTP_200_OK
+            )
+
+
+class ScheduleSession(generics.ListAPIView):
+    """Get a user specific appointments"""
+    permission_classes = [AllowAny]
+    serializer_class = CoreScheduledSerializer
+
+    def get_queryset(self):
+        return MaishaCore.objects.filter(
+            patient_id=self.kwargs['patient_id'],
+            status="REQUESTED",
+            is_scheduled=1
             )
 
 
@@ -337,10 +337,9 @@ class RateSession(views.APIView):
                 patient_account = PatientsAccount.objects.get(
                     patient_id=session.patient_id)
 
-                patients_amount = patient_account.aggregate_available_amount - session.session_value
                 patient_serializer = PatientsAccountSerializer(
                     patient_account, data={
-                        "aggregate_available_amount": patients_amount,
+                        "aggregate_available_amount": patient_account.aggregate_available_amount - session.session_value,
                         "aggregate_used_amount": patient_account.aggregate_used_amount + session.session_value,
                         "last_transaction_date": timezone.now()
                     }, partial=True)
@@ -502,7 +501,8 @@ class CoreChats(views.APIView):
                 }, status.HTTP_200_OK
             )
 
-    def put(self, request):
+    @staticmethod
+    def put(request):
         # Update message
         try:
             passed_data = request.data

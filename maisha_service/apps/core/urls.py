@@ -1,7 +1,7 @@
 from django.urls import path
 from .views import (CoreRequest, TokenGenerator, CoreAnalysis, ComplaintsRetriever,
                     SpecificRequest, GetUserRequests, ChatRetriever, OnGoingSession,
-                    CoreSendRequest, RateSession, CoreChats, Complaints)
+                    CoreSendRequest, RateSession, CoreChats, Complaints, ScheduleSession)
 
 urlpatterns = [
 
@@ -23,6 +23,11 @@ urlpatterns = [
     path('ongoing_session/',
          OnGoingSession.as_view(),
          name="Check Ongoing Session"
+         ),
+
+    path('schedule/<patient_id>',
+         ScheduleSession.as_view(),
+         name="Schedule session"
          ),
 
     path('patient/<patient_id>',
