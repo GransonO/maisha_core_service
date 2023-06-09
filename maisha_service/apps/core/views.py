@@ -17,7 +17,8 @@ from .serializers import MaishaCoreSerializer, SessionBounceSerializer, CoreChat
     ScheduledSessionsModelSerializer, CoreScheduledSerializer
 from .models import MaishaCore, SessionBounce, MaishaChats, CoreComplaints
 from ..profiles.models import PatientProfile, DoctorsProfiles, PatientsAccount, DoctorsAccount
-from ..profiles.serializers import PatientsProfileSerializer, PatientsAccountSerializer, DoctorsAccountSerializer
+from ..profiles.serializers import PatientsProfileSerializer, PatientsAccountSerializer, DoctorsAccountSerializer, \
+    DoctorProfileSerializer
 from ..notifiers.FCM.fcm_requester import FcmCore
 
 
@@ -34,6 +35,7 @@ class CoreRequest(views.APIView):
             gender = passed_data["gender"]
             patient_id = passed_data["patient_id"]
             is_scheduled = passed_data["is_scheduled"]
+            request_type = passed_data["type"]
 
             serializer = MaishaCoreSerializer(
                 data=passed_data, partial=True
@@ -78,6 +80,11 @@ class CoreRequest(views.APIView):
                 schedule_serializer.is_valid(raise_exception=True)
                 schedule_serializer.save(session_id=the_id)
 
+                # send FCM to doctor Move to background work
+                doctor = DoctorsProfiles.objects.get(user_id=passed_data["doctor_id"])
+                profile = DoctorProfileSerializer(doctor).data
+                FcmCore.doctor_schedule_notice(profile["fcm"], request_type)
+
                 return Response(
                     {
                         "success": True,
@@ -87,7 +94,7 @@ class CoreRequest(views.APIView):
                 )
 
         except Exception as E:
-            print("----------------Exception---------------- {}".format(E))
+            print("----------------Exception here---------------- {}".format(E))
             bugsnag.notify(
                 Exception('CoreRequest Post: {}'.format(E))
             )
@@ -127,7 +134,7 @@ class CoreRequest(views.APIView):
                 DoctorsProfiles.objects.filter(user_id=passed_data["doctor_id"]).update(is_online=False)
                 # Sent only if Doc Accepts the request
                 FcmCore.patient_core_notice(
-                    all_tokens=[passed_data["patient_fcm"]],
+                    all_tokens=passed_data["patient_fcm"],
                     message="Maisha request update",
                     doctor_id=passed_data["doctor_id"],
                     session_id=passed_data["session_id"],
@@ -182,7 +189,7 @@ class CoreSendRequest(views.APIView):
 
                 print("---session--------------------{}".format(session))
                 FcmCore.doctor_core_notice(
-                    all_tokens=[passed_data["doctor_fcm"]],
+                    all_tokens=passed_data["doctor_fcm"],
                     message="Maisha {} request".format(passed_data["type"]),
                     description=passed_data["description"],
                     user_id=passed_data["patient_id"],
@@ -308,10 +315,18 @@ class ScheduleSession(generics.ListAPIView):
     serializer_class = MaishaCoreSerializer
 
     def get_queryset(self):
-        return MaishaCore.objects.filter(
-            patient_id=self.kwargs['patient_id'],
-            status="REQUESTED",
-            is_scheduled=1
+        if 'patient' in self.request.path:
+            # request for patients
+            return MaishaCore.objects.filter(
+                patient_id=self.kwargs['patient_id'],
+                status="REQUESTED",
+                is_scheduled=1
+                )
+        else:
+            return MaishaCore.objects.filter(
+                doctor_id=self.kwargs['doctor_id'],
+                status="REQUESTED",
+                is_scheduled=1
             )
 
 

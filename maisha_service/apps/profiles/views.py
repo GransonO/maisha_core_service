@@ -176,7 +176,7 @@ class DoctorValidation(views.APIView):
                                "Contact support for more information".format(doctor_profile["fullname"])
 
             FcmCore.doctor_validation_notice(
-                all_tokens=[doctor_profile["fcm"]],
+                all_tokens=doctor_profile["fcm"],
                 message=message_body,
             )
 

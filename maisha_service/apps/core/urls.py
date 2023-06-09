@@ -25,7 +25,12 @@ urlpatterns = [
          name="Check Ongoing Session"
          ),
 
-    path('schedule/<patient_id>',
+    path('schedule/patient/<patient_id>',
+         ScheduleSession.as_view(),
+         name="Schedule session"
+         ),
+
+    path('schedule/doctor/<doctor_id>',
          ScheduleSession.as_view(),
          name="Schedule session"
          ),
