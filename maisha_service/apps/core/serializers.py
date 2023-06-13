@@ -9,6 +9,7 @@ from ..profiles.models import DoctorsProfiles, PatientProfile
 class MaishaCoreSerializer(serializers.ModelSerializer):
     doctor = serializers.SerializerMethodField('get_doctor')
     patient = serializers.SerializerMethodField('get_patient')
+    scheduling = serializers.SerializerMethodField('get_schedule')
 
     class Meta:
         model = MaishaCore
@@ -21,6 +22,10 @@ class MaishaCoreSerializer(serializers.ModelSerializer):
     @staticmethod
     def get_patient(obj):
         return PatientProfile.objects.filter(user_id=obj.patient_id).values()
+
+    @staticmethod
+    def get_schedule(obj):
+        return ScheduledSessionsModel.objects.filter(session_id=obj.session_id).values()
 
 
 class CoreScheduledSerializer(serializers.ModelSerializer):
