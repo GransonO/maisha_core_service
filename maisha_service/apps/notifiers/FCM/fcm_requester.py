@@ -43,12 +43,12 @@ class FcmCore:
             print("--------Error---X C I-{}".format(c))
 
     @staticmethod
-    def doctor_schedule_notice(fcm_token, request_type):
+    def maisha_schedule_notice(fcm_token, title_text, body_text):
 
         message = messaging.Message(
             notification=messaging.Notification(
-                title="Maisha Consultation request",
-                body="You have a {} consultation request".format(request_type)
+                title=title_text,
+                body=body_text
             ),
             token=fcm_token
         )

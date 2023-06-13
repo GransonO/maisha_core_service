@@ -83,7 +83,11 @@ class CoreRequest(views.APIView):
                 # send FCM to doctor Move to background work
                 doctor = DoctorsProfiles.objects.get(user_id=passed_data["doctor_id"])
                 profile = DoctorProfileSerializer(doctor).data
-                FcmCore.doctor_schedule_notice(profile["fcm"], request_type)
+                FcmCore.maisha_schedule_notice(
+                    profile["fcm"],
+                    title_text="Maisha Consultation request",
+                    body_text="You have a {} consultation request".format(request_type)
+                )
 
                 return Response(
                     {
@@ -134,11 +138,64 @@ class CoreRequest(views.APIView):
                 DoctorsProfiles.objects.filter(user_id=passed_data["doctor_id"]).update(is_online=False)
                 # Sent only if Doc Accepts the request
                 FcmCore.patient_core_notice(
-                    all_tokens=passed_data["patient_fcm"],
+                    fcm_token=passed_data["patient_fcm"],
                     message="Maisha request update",
                     doctor_id=passed_data["doctor_id"],
                     session_id=passed_data["session_id"],
                     status=passed_data["status"],
+                )
+
+            return Response(
+                {
+                    "success": True,
+                    "message": "Posted successfully"
+                }, status.HTTP_200_OK
+            )
+        except Exception as E:
+            print("---E--------------------{}".format(E))
+            bugsnag.notify(
+                Exception('CoreRequest Post: {}'.format(E))
+            )
+            return Response(
+                {
+                    "success": False,
+                    "message": "Posting failed"
+                }, status.HTTP_200_OK
+            )
+
+
+class CoreScheduledRequest(views.APIView):
+    """ Add a request to the therapist"""
+    permission_classes = [AllowAny]
+
+    @staticmethod
+    def post(request):
+        try:
+            passed = request.data
+            session = MaishaCore.objects.get(session_id=passed["session_id"])
+            session_details = MaishaCoreSerializer(session).data
+
+            if session_details["status"] == "ACCEPTED":
+                return Response({
+                    "success": False,
+                    "message": "Request already taken"
+                }, status.HTTP_200_OK)
+
+            serializer = MaishaCoreSerializer(
+                session, data=request.data, partial=True
+            )
+            serializer.is_valid(raise_exception=True)
+            serializer.save()
+
+            patient = PatientProfile.objects.get(user_id=session_details["patient_id"])
+            patient_profile = PatientsProfileSerializer(patient).data
+            if passed["status"] == "ACCEPTED":
+                # Sent only if Doc Accepts the request
+                FcmCore.maisha_schedule_notice(
+                    patient_profile["fcm"],
+                    title_text="Maisha consultation request update",
+                    body_text="Your {} consultation request was accepted. You will get notified 5 minutes before "
+                              "start time".format(session_details["type"])
                 )
 
             return Response(
@@ -319,13 +376,13 @@ class ScheduleSession(generics.ListAPIView):
             # request for patients
             return MaishaCore.objects.filter(
                 patient_id=self.kwargs['patient_id'],
-                status="REQUESTED",
+                is_completed=False,
                 is_scheduled=1
                 )
         else:
             return MaishaCore.objects.filter(
                 doctor_id=self.kwargs['doctor_id'],
-                status="REQUESTED",
+                is_completed=False,
                 is_scheduled=1
             )
 
