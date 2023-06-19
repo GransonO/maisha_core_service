@@ -71,7 +71,7 @@ class FcmCore:
                 "request": "MaishaCoreRequest"
             },
             android=messaging.AndroidConfig(
-                ttl="40s"
+                ttl=50
             ),
             token=fcm_token
         )
