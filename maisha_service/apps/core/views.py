@@ -246,7 +246,7 @@ class CoreSendRequest(views.APIView):
 
                 print("---session--------------------{}".format(session))
                 FcmCore.doctor_core_notice(
-                    all_tokens=passed_data["doctor_fcm"],
+                    fcm_token=passed_data["doctor_fcm"],
                     message="Maisha {} request".format(passed_data["type"]),
                     description=passed_data["description"],
                     user_id=passed_data["patient_id"],
