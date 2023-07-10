@@ -169,33 +169,28 @@ class CoreScheduledRequest(views.APIView):
     permission_classes = [AllowAny]
 
     @staticmethod
-    def post(request):
+    def put(request):
         try:
-            passed = request.data
-            session = MaishaCore.objects.get(session_id=passed["session_id"])
-            session_details = MaishaCoreSerializer(session).data
-
-            if session_details["status"] == "ACCEPTED":
-                return Response({
-                    "success": False,
-                    "message": "Request already taken"
-                }, status.HTTP_200_OK)
-
+            passed_data = request.data
+            session = MaishaCore.objects.get(session_id=passed_data["session_id"])
             serializer = MaishaCoreSerializer(
                 session, data=request.data, partial=True
             )
             serializer.is_valid(raise_exception=True)
             serializer.save()
+            session_details = serializer.data
 
-            patient = PatientProfile.objects.get(user_id=session_details["patient_id"])
-            patient_profile = PatientsProfileSerializer(patient).data
-            if passed["status"] == "ACCEPTED":
+            if passed_data["status"] == "ACCEPTED":
+                # take Accepting doctor offline
+                patient = PatientProfile.objects.get(user_id=session_details["patient_id"])
+                profile = PatientsProfileSerializer(patient).data
                 # Sent only if Doc Accepts the request
-                FcmCore.maisha_schedule_notice(
-                    patient_profile["fcm"],
-                    title_text="Maisha consultation request update",
-                    body_text="Your {} consultation request was accepted. You will get notified 5 minutes before "
-                              "start time".format(session_details["type"])
+                FcmCore.patient_core_notice(
+                    fcm_token=profile["fcm"],
+                    message="Maisha request update",
+                    doctor_id=passed_data["doctor_id"],
+                    session_id=passed_data["session_id"],
+                    status=passed_data["status"],
                 )
 
             return Response(
@@ -205,9 +200,8 @@ class CoreScheduledRequest(views.APIView):
                 }, status.HTTP_200_OK
             )
         except Exception as E:
-            print("---E--------------------{}".format(E))
             bugsnag.notify(
-                Exception('CoreRequest Post: {}'.format(E))
+                Exception('CoreScheduledRequest Post: {}'.format(E))
             )
             return Response(
                 {
