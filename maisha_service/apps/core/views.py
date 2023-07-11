@@ -402,6 +402,7 @@ class RateSession(views.APIView):
                     return Response(
                         {
                             "success": False,
+                            "code": "PATIENT_NOT_COMPLETE",
                             "message": "Please wait for the patient to complete the session first"
                         }, status.HTTP_200_OK
                     )
