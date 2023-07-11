@@ -396,39 +396,49 @@ class RateSession(views.APIView):
             passed_data = request.data
             session = MaishaCore.objects.get(session_id=passed_data["session_id"])
 
+            if passed_data["is_doctor"] is 1:
+                if session.is_complete is False:
+                    # Doctor ended session before patient
+                    return Response(
+                        {
+                            "success": False,
+                            "message": "Please wait for the patient to complete the session first"
+                        }, status.HTTP_200_OK
+                    )
+                else:
+                    # Transfer funds if rating above
+                    if float(passed_data["session_doctor_rating"]) > 3:
+                        # Update Patients amount
+                        patient_account = PatientsAccount.objects.get(
+                            patient_id=session.patient_id)
+
+                        patient_serializer = PatientsAccountSerializer(
+                            patient_account, data={
+                                "aggregate_available_amount": patient_account.aggregate_available_amount - session.session_value,
+                                "aggregate_used_amount": patient_account.aggregate_used_amount + session.session_value,
+                                "last_transaction_date": timezone.now()
+                            }, partial=True)
+                        patient_serializer.is_valid(raise_exception=True)
+                        patient_serializer.save()
+
+                        # Update Doctors amount
+                        doctors_account = DoctorsAccount.objects.get(
+                            doctor_id=session.doctor_id)
+
+                        doctors_serializer = DoctorsAccountSerializer(
+                            doctors_account, data={
+                                "aggregate_available_amount": doctors_account.aggregate_available_amount + session.session_value,
+                                "aggregate_collected_amount": doctors_account.aggregate_collected_amount + session.session_value,
+                                "last_transaction_date": timezone.now()
+                            }, partial=True)
+                        doctors_serializer.is_valid(raise_exception=True)
+                        doctors_serializer.save()
+
+                        MaishaCore.objects.filter(session_id=passed_data["session_id"]).update(session_settled=True)
+
             serializer = MaishaCoreSerializer(session, data=passed_data, partial=True)
             serializer.is_valid(raise_exception=True)
             serializer.save()
-
-            # Transfer funds if rating above
-            if float(passed_data["session_doctor_rating"]) > 3:
-                # Update Patients amount
-                patient_account = PatientsAccount.objects.get(
-                    patient_id=session.patient_id)
-
-                patient_serializer = PatientsAccountSerializer(
-                    patient_account, data={
-                        "aggregate_available_amount": patient_account.aggregate_available_amount - session.session_value,
-                        "aggregate_used_amount": patient_account.aggregate_used_amount + session.session_value,
-                        "last_transaction_date": timezone.now()
-                    }, partial=True)
-                patient_serializer.is_valid(raise_exception=True)
-                patient_serializer.save()
-
-                # Update Doctors amount
-                doctors_account = DoctorsAccount.objects.get(
-                    doctor_id=session.doctor_id)
-
-                doctors_serializer = DoctorsAccountSerializer(
-                    doctors_account, data={
-                        "aggregate_available_amount": doctors_account.aggregate_available_amount + session.session_value,
-                        "aggregate_collected_amount": doctors_account.aggregate_collected_amount + session.session_value,
-                        "last_transaction_date": timezone.now()
-                    }, partial=True)
-                doctors_serializer.is_valid(raise_exception=True)
-                doctors_serializer.save()
-
-                MaishaCore.objects.filter(session_id=passed_data["session_id"]).update(session_settled=True)
 
             return Response(
                 {
