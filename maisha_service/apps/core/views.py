@@ -372,12 +372,14 @@ class ScheduleSession(generics.ListAPIView):
             return MaishaCore.objects.filter(
                 patient_id=self.kwargs['patient_id'],
                 is_completed=False,
+                status="ACCEPTED",
                 is_scheduled=1
                 )
         else:
             return MaishaCore.objects.filter(
                 doctor_id=self.kwargs['doctor_id'],
                 is_completed=False,
+                status="ACCEPTED",
                 is_scheduled=1
             )
 
