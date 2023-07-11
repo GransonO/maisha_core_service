@@ -324,7 +324,7 @@ class OnGoingSession(views.APIView):
         try:
             session = MaishaCore.objects.filter(
                 patient_id=passed_data["patient_id"],
-                status="ACCEPTED"
+                status="ONGOING"
             ).values()
             return Response(list(session), status.HTTP_200_OK)
 
@@ -346,7 +346,8 @@ class OnGoingSession(views.APIView):
         try:
             session = MaishaCore.objects.filter(
                 doctor_id=passed_data["doctor_id"],
-                status="ACCEPTED").values()
+                status="ONGOING"
+            ).values()
             return Response(list(session), status.HTTP_200_OK)
 
         except Exception as E:
@@ -513,24 +514,12 @@ class TokenGenerator(views.APIView):
         current_timestamp = int(time.time())
         privilege_expired_ts = current_timestamp + expire_time_in_seconds
 
-        if passed_data["is_patient"] is True:
-            # Patients token
-            token = RtcTokenBuilder.buildTokenWithUid(
-                app_id, app_certificate, channel_name, user_account, Role_Subscriber, privilege_expired_ts)
-            return Response({'token': token, 'appID': app_id}, status.HTTP_200_OK)
-        else:
-            passed_data = request.data
-            session = MaishaCore.objects.get(session_id=passed_data["channel_name"])
-            serializer = MaishaCoreSerializer(
-                session, data=request.data, partial=True
-            )
-            serializer.is_valid(raise_exception=True)
-            serializer.save()
-            # Doctors token
-            token = RtcTokenBuilder.buildTokenWithUid(
-                app_id, app_certificate, channel_name, user_account, Role_Subscriber, privilege_expired_ts)
+        if passed_data["is_patient"] is 1:
+            MaishaCore.objects.filter(session_id=channel_name).update(status="ONGOING")
 
-            return Response({'token': token, 'appID': app_id}, status.HTTP_200_OK)
+        token = RtcTokenBuilder.buildTokenWithUid(
+            app_id, app_certificate, channel_name, user_account, Role_Subscriber, privilege_expired_ts)
+        return Response({'token': token, 'appID': app_id}, status.HTTP_200_OK)
 
 
 class CoreChats(views.APIView):
