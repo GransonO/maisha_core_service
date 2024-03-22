@@ -396,7 +396,7 @@ class RateSession(views.APIView):
             passed_data = request.data
             session = MaishaCore.objects.get(session_id=passed_data["session_id"])
 
-            if passed_data["is_doctor"] is 1:
+            if passed_data["is_doctor"] == 1:
                 if session.is_complete is False:
                     # Doctor ended session before patient
                     return Response(
@@ -444,7 +444,8 @@ class RateSession(views.APIView):
             return Response(
                 {
                     "success": True,
-                    "message": "Posted successfully"
+                    "message": "Posted successfully",
+                    "code": "DONE",
                 }, status.HTTP_200_OK
             )
         except Exception as E:
@@ -527,7 +528,7 @@ class TokenGenerator(views.APIView):
         current_timestamp = int(time.time())
         privilege_expired_ts = current_timestamp + expire_time_in_seconds
 
-        if passed_data["is_patient"] is 1:
+        if passed_data["is_patient"] == 1:
             MaishaCore.objects.filter(session_id=channel_name).update(status="ONGOING")
 
         token = RtcTokenBuilder.buildTokenWithUid(
